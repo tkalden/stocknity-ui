@@ -1,5 +1,6 @@
 import axios from 'axios';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
 
 interface User {
     id: string;
@@ -35,8 +36,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     // Configure axios defaults
-    axios.defaults.baseURL = 'http://localhost:5001/api';
+    axios.defaults.baseURL = API_BASE_URL;
     axios.defaults.withCredentials = true;
+
+    // Add response interceptor to handle 401 errors
+    axios.interceptors.response.use(
+        (response) => response,
+        (error) => {
+            if (error.response?.status === 401 && error.response?.data?.code === 'AUTH_REQUIRED') {
+                // Handle authentication required error
+                setUser(null);
+                setIsAuthenticated(false);
+            }
+            return Promise.reject(error);
+        }
+    );
 
     useEffect(() => {
         // Check if user is already logged in
@@ -45,7 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const checkAuthStatus = async () => {
         try {
-            const response = await axios.get('/profile');
+            const response = await axios.get(API_ENDPOINTS.PROFILE);
             if (response.status === 200) {
                 setUser(response.data.user);
                 setIsAuthenticated(true);
@@ -58,7 +72,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const login = async (email: string, password: string): Promise<boolean> => {
         try {
-            const response = await axios.post('/login', {
+            const response = await axios.post(API_ENDPOINTS.LOGIN, {
                 email,
                 password
             }, {
@@ -81,7 +95,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const signup = async (email: string, name: string, password: string, confirm: string): Promise<boolean> => {
         try {
-            const response = await axios.post('/signup', {
+            const response = await axios.post(API_ENDPOINTS.SIGNUP, {
                 email,
                 name,
                 password,
@@ -104,7 +118,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const logout = async () => {
         try {
-            await axios.post('/logout');
+            await axios.post(API_ENDPOINTS.LOGOUT);
         } catch (error) {
             console.error('Logout error:', error);
         } finally {

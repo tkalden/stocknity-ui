@@ -1,5 +1,5 @@
 // API Configuration
-export const API_BASE_URL = 'http://localhost:5001/api';
+export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://stock-portfolio-theta.vercel.app/api';
 
 export const API_ENDPOINTS = {
     // Authentication
@@ -22,55 +22,75 @@ export const API_ENDPOINTS = {
     MY_PORTFOLIO_DATA: '/my-portfolio/data',
     DELETE_PORTFOLIO: (id: string) => `/delete-portfolio/${id}`,
     CLEAR_BUILT_PORTFOLIO: '/clear-built-portfolio',
+    PORTFOLIO_ADVANCED: '/portfolio/advanced',
+    PORTFOLIO_COMPARE_METHODS: '/portfolio/compare-methods',
+    PORTFOLIO_BACKTEST: '/portfolio/backtest',
+    PORTFOLIO_OPTIMIZATION_METHODS: '/portfolio/optimization-methods',
 
     // Charts
     CHART: (type: string) => `/chart/${type}`,
+
+    // AI Services
+    AI_SENTIMENT: (ticker: string) => `/ai/sentiment/${ticker}`,
+    AI_SENTIMENT_TREND: (ticker: string) => `/ai/sentiment/${ticker}/trend`,
+    AI_RECOMMENDATIONS: '/ai/recommendations',
+    AI_PERFORMANCE: '/ai/performance',
+
+    // Cache Management
+    CACHE_STATUS: '/cache/status',
+    CACHE_INFO: '/cache/info',
+    CACHE_TRACKING: '/cache/tracking',
+    CACHE_TRACKING_CLEAR: '/cache/tracking/clear',
+    CACHE_REFRESH: '/cache/refresh',
+    CACHE_CLEAR: '/cache/clear',
+    CACHE_PRE_WARM: '/cache/pre-warm',
+    CACHE_ANNUAL_RETURNS_STATUS: '/cache/annual-returns/status',
+
+    // Scheduler Management
+    SCHEDULER_START: '/scheduler/start',
+    SCHEDULER_STOP: '/scheduler/stop',
+    SCHEDULER_STATUS: '/scheduler/status',
+    SCHEDULER_REFRESH: '/scheduler/refresh',
+    SCHEDULER_FORCE_REFRESH: '/scheduler/force-refresh',
+
+    // Health Check
+    HEALTH: '/health',
+    TEST: '/test',
 };
 
-// API Response Types
-export interface ApiResponse<T = any> {
-    success: boolean;
-    data?: T;
-    error?: string;
-    message?: string;
-}
+// Constants for UI components
+export const indices = [
+    'S&P 500',
+    'NASDAQ',
+    'DOW',
+    'Russell 2000',
+    'Any'
+];
 
-export interface User {
-    id: string;
-    name: string;
-    email: string;
-}
+export const sectors = [
+    'Any',
+    'Technology',
+    'Healthcare',
+    'Financial',
+    'Consumer Discretionary',
+    'Consumer Staples',
+    'Energy',
+    'Industrials',
+    'Materials',
+    'Real Estate',
+    'Utilities',
+    'Communication Services'
+];
 
-export interface StockData {
-    Ticker: string;
-    Company: string;
-    Sector: string;
-    Index: string;
-    Price: string;
-    Change: string;
-    Volume: string;
-    Market_Cap: string;
-    PE: string;
-    Forward_PE: string;
-    PEG: string;
-    Debt_Eq: string;
-    ROIC: string;
-    ROE: string;
-    ROI: string;
-    Sales_Q_Q: string;
-    EPS_Q_Q: string;
-    Insider_Own: string;
-    strength: string;
-    expected_annual_return: string;
-    expected_annual_risk: string;
-}
+export const riskTolerances = [
+    'Conservative',
+    'Moderate',
+    'Aggressive'
+];
 
-export interface PortfolioStock extends StockData {
-    weight: string;
-    invested_amount: string;
-    total_shares: string;
-    weighted_expected_return: string;
-    portfolio_id: string;
-    created_at: string;
-    portfolio_count: number;
-} 
+export const stockTypes = [
+    'Growth',
+    'Value',
+    'Dividend',
+    'Any'
+];

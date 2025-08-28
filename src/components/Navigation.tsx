@@ -65,6 +65,14 @@ const Navigation: React.FC = () => {
                                 <i className="fas fa-chart-bar me-1"></i>
                                 Charts
                             </Nav.Link>
+                            <Nav.Link
+                                as={Link}
+                                to="/ai-analysis"
+                                className={`me-2 ${isActive('/ai-analysis') ? 'active' : ''}`}
+                            >
+                                <i className="fas fa-robot me-1"></i>
+                                AI Analysis
+                            </Nav.Link>
                             {isAuthenticated && (
                                 <>
                                     <Nav.Link
@@ -180,6 +188,15 @@ const Navigation: React.FC = () => {
                         >
                             <i className="fas fa-chart-bar me-2"></i>
                             Market Charts
+                        </Nav.Link>
+                        <Nav.Link
+                            as={Link}
+                            to="/ai-analysis"
+                            className={`mb-2 ${isActive('/ai-analysis') ? 'active' : ''}`}
+                            onClick={handleNavClick}
+                        >
+                            <i className="fas fa-robot me-2"></i>
+                            AI Analysis
                         </Nav.Link>
 
                         {isAuthenticated ? (

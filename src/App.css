@@ -995,3 +995,162 @@ body {
 .advanced-portfolio-table .table-hover>tbody>tr:hover>td {
   background: linear-gradient(135deg, rgba(240, 185, 11, 0.2) 0%, rgba(230, 167, 0, 0.2) 100%);
 }
+
+/* AI Analysis styling */
+.btn-outline-purple {
+  color: #6f42c1;
+  border-color: #6f42c1;
+}
+
+.btn-outline-purple:hover {
+  background-color: #6f42c1;
+  border-color: #6f42c1;
+  color: white;
+}
+
+.text-purple {
+  color: #6f42c1 !important;
+}
+
+.ai-analysis-table {
+  font-size: 0.9rem;
+}
+
+/* Responsive utilities */
+.w-md-auto {
+  width: auto !important;
+}
+
+.w-lg-auto {
+  width: auto !important;
+}
+
+.w-sm-auto {
+  width: auto !important;
+}
+
+@media (max-width: 767.98px) {
+  .w-md-auto {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .w-lg-auto {
+    width: 100% !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .w-sm-auto {
+    width: 100% !important;
+  }
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 767.98px) {
+  .ai-analysis-table {
+    font-size: 0.8rem;
+  }
+
+  .ai-analysis-table th,
+  .ai-analysis-table td {
+    padding: 0.5rem 0.25rem;
+  }
+
+  .card-body {
+    padding: 1rem;
+  }
+
+  .badge {
+    font-size: 0.75rem;
+  }
+
+  .progress {
+    height: 1.5rem;
+  }
+
+  .progress-bar {
+    font-size: 0.75rem;
+    line-height: 1.5rem;
+  }
+}
+
+/* Tablet improvements */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .ai-analysis-table {
+    font-size: 0.85rem;
+  }
+
+  .card-body {
+    padding: 1.25rem;
+  }
+}
+
+.ai-analysis-table .table th {
+  background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);
+  color: white;
+}
+
+.ai-analysis-table .table-striped>tbody>tr:nth-of-type(odd)>td {
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.08) 0%, rgba(90, 50, 163, 0.08) 100%);
+}
+
+.ai-analysis-table .table-hover>tbody>tr:hover>td {
+  background: linear-gradient(135deg, rgba(111, 66, 193, 0.2) 0%, rgba(90, 50, 163, 0.2) 100%);
+}
+
+/* Fix table text color for better readability */
+.table {
+  color: var(--text-primary);
+}
+
+.table td,
+.table th {
+  color: var(--text-primary);
+}
+
+.table-striped>tbody>tr:nth-of-type(odd)>td {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.table-hover>tbody>tr:hover>td {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Card styling improvements */
+.card {
+  background: var(--background-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.card-header {
+  background: linear-gradient(135deg, var(--background-card) 0%, var(--background-light) 100%);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.card-body {
+  color: var(--text-primary);
+}
+
+/* Form controls */
+.form-control,
+.form-select {
+  background: var(--background-light);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.form-control:focus,
+.form-select:focus {
+  background: var(--background-light);
+  border-color: var(--primary-color);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 0.2rem rgba(0, 212, 170, 0.25);
+}
+
+.form-label {
+  color: var(--text-primary);
+}

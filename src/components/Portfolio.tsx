@@ -1,32 +1,12 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Table } from 'react-bootstrap';
+import { API_ENDPOINTS, indices, riskTolerances, sectors, stockTypes } from '../config/api';
 import { useAuth } from '../context/AuthContext';
+import { PortfolioData, PortfolioStock } from '../types';
+import styles from './Portfolio.module.css';
 
-interface PortfolioStock {
-    Ticker: string;
-    Company: string;
-    Sector: string;
-    Index: string;
-    Price: string;
-    weight: string;
-    invested_amount: string;
-    total_shares: string;
-    weighted_expected_return: string;
-    expected_annual_return: string;
-    expected_annual_risk: string;
-    strength: string;
-    portfolio_id: string;
-    created_at: string;
-    portfolio_count: number;
-}
 
-interface PortfolioData {
-    data: PortfolioStock[];
-    portfolio_id: string;
-    created_at: string;
-    count: number;
-}
 
 const Portfolio: React.FC = () => {
     const { isAuthenticated } = useAuth();
@@ -57,10 +37,6 @@ const Portfolio: React.FC = () => {
         selected_stocks: [] as string[]
     });
 
-    const sectors = ['Any', 'Technology', 'Healthcare', 'Financial', 'Consumer Cyclical', 'Industrials', 'Consumer Defensive', 'Energy', 'Basic Materials', 'Real Estate', 'Communication Services', 'Utilities'];
-    const indices = ['S&P 500', 'DJIA'];
-    const stockTypes = ['Value', 'Growth'];
-    const riskTolerances = ['Low', 'Medium', 'High'];
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -71,7 +47,7 @@ const Portfolio: React.FC = () => {
 
     const fetchPortfolios = async () => {
         try {
-            const response = await axios.get('/my-portfolio/data');
+            const response = await axios.get(API_ENDPOINTS.MY_PORTFOLIO_DATA);
             if (response.data && response.data.data) {
                 setPortfolios(response.data.data);
             }
@@ -82,7 +58,7 @@ const Portfolio: React.FC = () => {
 
     const fetchCurrentPortfolio = async () => {
         try {
-            const response = await axios.get('/portfolio/data');
+            const response = await axios.get(API_ENDPOINTS.PORTFOLIO_DATA);
             if (response.data && response.data.data) {
                 setCurrentPortfolio(response.data.data);
             }
@@ -102,7 +78,7 @@ const Portfolio: React.FC = () => {
                 formData.append(key, value);
             });
 
-            const response = await axios.post('/portfolio', formData, {
+            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, formData, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
@@ -135,7 +111,7 @@ const Portfolio: React.FC = () => {
                 }
             });
 
-            const response = await axios.post('/portfolio', formData, {
+            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, formData, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
@@ -166,7 +142,7 @@ const Portfolio: React.FC = () => {
             const formData = new FormData();
             formData.append('btn', 'Save Portfolio');
 
-            const response = await axios.post('/portfolio', formData, {
+            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, formData, {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
@@ -193,7 +169,7 @@ const Portfolio: React.FC = () => {
         }
 
         try {
-            await axios.post(`/delete-portfolio/${portfolioId}`);
+            await axios.post(API_ENDPOINTS.DELETE_PORTFOLIO(portfolioId));
             await fetchPortfolios();
             alert('Portfolio deleted successfully!');
         } catch (error) {
@@ -202,29 +178,23 @@ const Portfolio: React.FC = () => {
         }
     };
 
-    const formatNumber = (value: string) => {
-        if (!value || value === 'nan') return '-';
-        const num = parseFloat(value);
-        if (isNaN(num)) return value;
-        return num.toLocaleString();
+    const formatNumber = (value: number) => {
+        return value;
     };
 
-    const formatPercentage = (value: string) => {
-        if (!value || value === 'nan') return '-';
-        const num = parseFloat(value);
-        if (isNaN(num)) return value;
-        return `${num.toFixed(2)}%`;
+    const formatPercentage = (value: number) => {
+        return `${value.toFixed(2)}%`;
     };
 
     const calculatePortfolioStats = (portfolio: PortfolioStock[]) => {
         if (portfolio.length === 0) return { return: 0, risk: 0, totalValue: 0 };
 
         const totalReturn = portfolio.reduce((sum, stock) =>
-            sum + parseFloat(stock.weighted_expected_return || '0'), 0);
+            sum + stock.weighted_expected_return, 0);
         const totalRisk = portfolio.reduce((sum, stock) =>
-            sum + (parseFloat(stock.expected_annual_risk || '0') * parseFloat(stock.weight || '0')), 0);
+            sum + stock.expected_annual_risk * stock.weight, 0);
         const totalValue = portfolio.reduce((sum, stock) =>
-            sum + parseFloat(stock.invested_amount || '0'), 0);
+            sum + stock.invested_amount, 0);
 
         return {
             return: totalReturn * 100,
@@ -423,15 +393,27 @@ const Portfolio: React.FC = () => {
 
             {/* Top Stock Portfolio Modal */}
             <Modal show={showTopStockModal} onHide={() => setShowTopStockModal(false)} size="lg">
-                <Modal.Header closeButton>
-                    <Modal.Title>Build Top Stock Portfolio</Modal.Title>
+                <Modal.Header closeButton className={styles.modalHeader}>
+                    <Modal.Title className={`text-primary ${styles.modalTitle}`}>
+                        <i className="fas fa-chart-line me-2"></i>
+                        Build Top Stock Portfolio
+                    </Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+                <Modal.Body className={styles.modalBody}>
                     <Form>
+                        <div className="mb-4">
+                            <h6 className="text-muted mb-3">
+                                <i className="fas fa-info-circle me-2"></i>
+                                Configure your portfolio parameters
+                            </h6>
+                        </div>
                         <Row>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Sector</Form.Label>
+                                    <Form.Label className="fw-semibold text-dark">
+                                        <i className="fas fa-industry me-1"></i>
+                                        Sector
+                                    </Form.Label>
                                     <Form.Select
                                         value={topStockForm.sector}
                                         onChange={(e) => setTopStockForm({ ...topStockForm, sector: e.target.value })}
@@ -444,7 +426,10 @@ const Portfolio: React.FC = () => {
                             </Col>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Index</Form.Label>
+                                    <Form.Label className="fw-semibold text-dark">
+                                        <i className="fas fa-chart-bar me-1"></i>
+                                        Index
+                                    </Form.Label>
                                     <Form.Select
                                         value={topStockForm.index}
                                         onChange={(e) => setTopStockForm({ ...topStockForm, index: e.target.value })}
@@ -459,7 +444,10 @@ const Portfolio: React.FC = () => {
                         <Row>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Stock Type</Form.Label>
+                                    <Form.Label className="fw-semibold text-dark">
+                                        <i className="fas fa-tag me-1"></i>
+                                        Stock Type
+                                    </Form.Label>
                                     <Form.Select
                                         value={topStockForm.stock_type}
                                         onChange={(e) => setTopStockForm({ ...topStockForm, stock_type: e.target.value })}
@@ -472,7 +460,10 @@ const Portfolio: React.FC = () => {
                             </Col>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
-                                    <Form.Label>Risk Tolerance</Form.Label>
+                                    <Form.Label className="fw-semibold text-dark">
+                                        <i className="fas fa-shield-alt me-1"></i>
+                                        Risk Tolerance
+                                    </Form.Label>
                                     <Form.Select
                                         value={topStockForm.risk_tolerance}
                                         onChange={(e) => setTopStockForm({ ...topStockForm, risk_tolerance: e.target.value })}
@@ -512,23 +503,49 @@ const Portfolio: React.FC = () => {
                         </Row>
                     </Form>
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowTopStockModal(false)}>
+                <Modal.Footer className={styles.modalFooter}>
+                    <Button
+                        className={`${styles.btnOutline} ${styles.btnSecondary}`}
+                        onClick={() => setShowTopStockModal(false)}
+                    >
                         Cancel
                     </Button>
-                    <Button variant="primary" onClick={handleBuildTopStock} disabled={loading}>
-                        {loading ? 'Building...' : 'Build Portfolio'}
+                    <Button
+                        className={`${styles.btnPrimary} ms-2`}
+                        onClick={handleBuildTopStock}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                Building...
+                            </>
+                        ) : (
+                            <>
+                                <i className="fas fa-chart-line me-2"></i>
+                                Build Portfolio
+                            </>
+                        )}
                     </Button>
                 </Modal.Footer>
             </Modal>
 
             {/* Custom Portfolio Modal */}
             <Modal show={showCustomModal} onHide={() => setShowCustomModal(false)} size="lg">
-                <Modal.Header closeButton>
-                    <Modal.Title>Build Custom Portfolio</Modal.Title>
+                <Modal.Header closeButton className={styles.modalHeader}>
+                    <Modal.Title className={`text-info ${styles.modalTitle}`}>
+                        <i className="fas fa-cogs me-2"></i>
+                        Build Custom Portfolio
+                    </Modal.Title>
                 </Modal.Header>
-                <Modal.Body>
+                <Modal.Body className={styles.modalBody}>
                     <Form>
+                        <div className="mb-4">
+                            <h6 className="text-muted mb-3">
+                                <i className="fas fa-info-circle me-2"></i>
+                                Configure your custom portfolio
+                            </h6>
+                        </div>
                         <Row>
                             <Col md={6}>
                                 <Form.Group className="mb-3">
@@ -597,12 +614,29 @@ const Portfolio: React.FC = () => {
                         </Form.Group>
                     </Form>
                 </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowCustomModal(false)}>
+                <Modal.Footer className={styles.modalFooter}>
+                    <Button
+                        className={`${styles.btnOutline} ${styles.btnSecondary}`}
+                        onClick={() => setShowCustomModal(false)}
+                    >
                         Cancel
                     </Button>
-                    <Button variant="primary" onClick={handleOptimizeCustom} disabled={loading}>
-                        {loading ? 'Optimizing...' : 'Optimize Portfolio'}
+                    <Button
+                        className={`${styles.btnInfo} ms-2`}
+                        onClick={handleOptimizeCustom}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <>
+                                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                Optimizing...
+                            </>
+                        ) : (
+                            <>
+                                <i className="fas fa-cogs me-2"></i>
+                                Optimize Portfolio
+                            </>
+                        )}
                     </Button>
                 </Modal.Footer>
             </Modal>

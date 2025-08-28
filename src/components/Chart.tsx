@@ -1,18 +1,8 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Badge, Card, Col, Container, Nav, Row, Table } from 'react-bootstrap';
-import { API_BASE_URL } from '../config/api';
-
-interface ChartData {
-    id: string;
-    labels: string[];
-    title: string;
-    values: number[];
-}
-
-interface ChartResponse {
-    data: ChartData[];
-}
+import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
+import { ChartData, ChartResponse } from '../types';
 
 const Chart: React.FC = () => {
     const [activeTab, setActiveTab] = useState('value');
@@ -26,9 +16,9 @@ const Chart: React.FC = () => {
         setActiveTab(chartType);
 
         try {
-            console.log(`Fetching ${chartType} chart data from: ${API_BASE_URL}/chart/${chartType}`);
+            console.log(`Fetching ${chartType} chart data from: ${API_BASE_URL}${API_ENDPOINTS.CHART(chartType)}`);
 
-            const response = await axios.get<ChartResponse>(`${API_BASE_URL}/chart/${chartType}`, {
+            const response = await axios.get<ChartResponse>(`${API_BASE_URL}${API_ENDPOINTS.CHART(chartType)}`, {
                 withCredentials: true,
                 headers: {
                     'Content-Type': 'application/json',
@@ -38,8 +28,10 @@ const Chart: React.FC = () => {
             console.log(`${chartType} chart response:`, response);
 
             if (response.data && response.data.data) {
-                setChartData(response.data.data);
-                console.log(`${chartType} chart data set:`, response.data.data);
+                // Handle both single object and array responses
+                const data = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
+                setChartData(data);
+                console.log(`${chartType} chart data set:`, data);
             } else {
                 console.error(`No data in response for ${chartType} chart:`, response);
                 setError(`No data available for ${chartType} chart.`);
@@ -63,13 +55,16 @@ const Chart: React.FC = () => {
         handleChartView('value');
     }, []);
 
-    const formatValue = (value: number) => {
-        return value.toFixed(2);
+    const formatValue = (value: number | string) => {
+        const numValue = typeof value === 'string' ? parseFloat(value) : value;
+        return isNaN(numValue) ? '0.00' : numValue.toFixed(2);
     };
 
-    const getValueColor = (value: number) => {
-        if (value > 0) return 'text-success';
-        if (value < 0) return 'text-danger';
+    const getValueColor = (value: number | string) => {
+        const numValue = typeof value === 'string' ? parseFloat(value) : value;
+        if (isNaN(numValue)) return 'text-muted';
+        if (numValue > 0) return 'text-success';
+        if (numValue < 0) return 'text-danger';
         return 'text-muted';
     };
 
@@ -125,7 +120,9 @@ const Chart: React.FC = () => {
                                     <div className="mb-4">
                                         <h5>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Stocks Analysis</h5>
                                         <p className="text-muted">
-                                            Top 5 stocks by strength in each sector
+                                            {activeTab === 'value' && 'Top 5 value stocks by P/E, P/B, and dividend metrics'}
+                                            {activeTab === 'growth' && 'Top 5 growth stocks by sales growth, PEG, and forward P/E metrics'}
+                                            {activeTab === 'dividend' && 'Top 5 dividend stocks by yield percentage'}
                                         </p>
                                     </div>
 
@@ -146,7 +143,11 @@ const Chart: React.FC = () => {
                                                             <tr>
                                                                 <th>Rank</th>
                                                                 <th>Ticker</th>
-                                                                <th>Strength Value</th>
+                                                                <th>
+                                                                    {activeTab === 'value' && 'Value Score'}
+                                                                    {activeTab === 'growth' && 'Growth Score'}
+                                                                    {activeTab === 'dividend' && 'Dividend Yield (%)'}
+                                                                </th>
                                                                 <th>Performance</th>
                                                             </tr>
                                                         </thead>
@@ -168,19 +169,25 @@ const Chart: React.FC = () => {
                                                                     </td>
                                                                     <td>
                                                                         <div className="progress" style={{ height: '20px' }}>
-                                                                            <div
-                                                                                className={`progress-bar ${sector.values[tickerIndex] > 0 ? 'bg-success' : 'bg-danger'}`}
-                                                                                role="progressbar"
-                                                                                style={{
-                                                                                    width: `${Math.abs(sector.values[tickerIndex]) * 10}%`,
-                                                                                    minWidth: '20px'
-                                                                                }}
-                                                                                aria-valuenow={Math.abs(sector.values[tickerIndex])}
-                                                                                aria-valuemin={0}
-                                                                                aria-valuemax={20}
-                                                                            >
-                                                                                {formatValue(sector.values[tickerIndex])}
-                                                                            </div>
+                                                                            {(() => {
+                                                                                const value = sector.values[tickerIndex];
+                                                                                const numValue = typeof value === 'string' ? parseFloat(value) : value;
+                                                                                return (
+                                                                                    <div
+                                                                                        className={`progress-bar ${numValue > 0 ? 'bg-success' : 'bg-danger'}`}
+                                                                                        role="progressbar"
+                                                                                        style={{
+                                                                                            width: `${Math.abs(numValue) * 10}%`,
+                                                                                            minWidth: '20px'
+                                                                                        }}
+                                                                                        aria-valuenow={Math.abs(numValue)}
+                                                                                        aria-valuemin={0}
+                                                                                        aria-valuemax={20}
+                                                                                    >
+                                                                                        {formatValue(value)}
+                                                                                    </div>
+                                                                                );
+                                                                            })()}
                                                                         </div>
                                                                     </td>
                                                                 </tr>

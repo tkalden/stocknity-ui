@@ -1,0 +1,162 @@
+/* Professional Portfolio Modal Styling */
+
+.modalHeader {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 2px solid #dee2e6;
+}
+
+.modalTitle {
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+.modalBody {
+    padding: 2rem;
+    background-color: #ffffff;
+}
+
+.formSection {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #e9ecef;
+}
+
+.formLabel {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.formControl {
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    padding: 0.75rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.formControl:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.formSelect {
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    padding: 0.75rem;
+    background-color: #ffffff;
+    transition: all 0.2s ease-in-out;
+}
+
+.formSelect:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.modalFooter {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-top: 2px solid #dee2e6;
+    padding: 1.5rem;
+}
+
+.btnPrimary {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+}
+
+.btnPrimary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btnSecondary {
+    background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+}
+
+.btnSecondary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+.btnInfo {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    border: none;
+    border-radius: 6px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+}
+
+.btnInfo:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+}
+
+.btnOutline {
+    border: 2px solid #6c757d;
+    background: transparent;
+    color: #6c757d;
+    border-radius: 6px;
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    transition: all 0.2s ease-in-out;
+}
+
+.btnOutline:hover {
+    background-color: #6c757d;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.sectionTitle {
+    color: #6c757d;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.icon {
+    margin-right: 0.5rem;
+    opacity: 0.8;
+}
+
+/* Loading state styling */
+.loadingSpinner {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .modalBody {
+        padding: 1rem;
+    }
+
+    .formSection {
+        padding: 1rem;
+    }
+
+    .btnPrimary,
+    .btnSecondary,
+    .btnInfo,
+    .btnOutline {
+        padding: 0.5rem 1.5rem;
+        font-size: 0.9rem;
+    }
+}

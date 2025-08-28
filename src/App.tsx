@@ -2,6 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
 import AdvancedPortfolio from './components/AdvancedPortfolio';
+import AIAnalysis from './components/AIAnalysis';
 import CacheMonitor from './components/CacheMonitor';
 import Chart from './components/Chart';
 import Home from './components/Home';
@@ -28,6 +29,7 @@ function App() {
               <Route path="/screener" element={<Screener />} />
               <Route path="/portfolio" element={<Portfolio />} />
               <Route path="/chart" element={<Chart />} />
+              <Route path="/ai-analysis" element={<AIAnalysis />} />
               <Route path="/advanced-portfolio" element={<AdvancedPortfolio />} />
               <Route path="/cache-status" element={<CacheMonitor />} />
             </Routes>

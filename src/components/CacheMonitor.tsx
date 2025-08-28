@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Col, Container, ProgressBar, Row, Spinner } from 'react-bootstrap';
+import { API_ENDPOINTS } from '../config/api';
 
 interface CacheStatus {
     status: string;
@@ -24,7 +25,7 @@ const CacheMonitor: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.get('/cache/status');
+            const response = await axios.get(API_ENDPOINTS.CACHE_STATUS);
             if (response.data.success) {
                 setCacheStatus(response.data.cache_status);
                 setLastUpdated(new Date());
@@ -44,7 +45,7 @@ const CacheMonitor: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.post('/cache/refresh');
+            const response = await axios.post(API_ENDPOINTS.CACHE_REFRESH);
             if (response.data.success) {
                 // Refresh the status after successful refresh
                 await fetchCacheStatus();

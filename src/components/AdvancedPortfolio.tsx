@@ -1,15 +1,9 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, ProgressBar, Row, Table } from 'react-bootstrap';
-
-interface OptimizationMethod {
-    id: string;
-    name: string;
-    description: string;
-    advantages: string[];
-    disadvantages: string[];
-}
-
+import { API_ENDPOINTS } from '../config/api';
+import { useAuth } from '../context/AuthContext';
+// Using local interface for now since it has different properties
 interface PortfolioStock {
     Ticker: string;
     weight: number;
@@ -20,6 +14,25 @@ interface PortfolioStock {
     expected_annual_risk: string;
     strength: string;
 }
+
+interface OptimizationMethod {
+    id: string;
+    name: string;
+    description: string;
+    advantages: string[];
+    disadvantages: string[];
+}
+
+// interface PortfolioStock {
+//     Ticker: string;
+//     weight: number;
+//     invested_amount: number;
+//     total_shares: number;
+//     price: string;
+//     expected_annual_return: string;
+//     expected_annual_risk: string;
+//     strength: string;
+// }
 
 interface OptimizationMetrics {
     method: string;
@@ -52,6 +65,7 @@ interface BacktestResult {
 }
 
 const AdvancedPortfolio: React.FC = () => {
+    const { isAuthenticated } = useAuth();
     const [optimizationMethods, setOptimizationMethods] = useState<OptimizationMethod[]>([]);
     const [selectedMethod, setSelectedMethod] = useState('markowitz');
     const [investingAmount, setInvestingAmount] = useState(10000);
@@ -84,7 +98,7 @@ const AdvancedPortfolio: React.FC = () => {
 
     const fetchOptimizationMethods = async () => {
         try {
-            const response = await axios.get('/portfolio/optimization-methods');
+            const response = await axios.get(API_ENDPOINTS.PORTFOLIO_OPTIMIZATION_METHODS);
             if (response.data.success) {
                 setOptimizationMethods(response.data.methods);
             }
@@ -94,11 +108,16 @@ const AdvancedPortfolio: React.FC = () => {
     };
 
     const handleAdvancedOptimization = async () => {
+        if (!isAuthenticated) {
+            setError('Please log in to use advanced portfolio features');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
         try {
-            const response = await axios.post('/portfolio/advanced', {
+            const response = await axios.post(API_ENDPOINTS.PORTFOLIO_ADVANCED, {
                 method: selectedMethod,
                 investing_amount: investingAmount,
                 max_stock_price: maxStockPrice,
@@ -106,6 +125,11 @@ const AdvancedPortfolio: React.FC = () => {
                 sector: sector,
                 index: index,
                 stock_type: stockType
+            }, {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             });
 
             if (response.data.success) {
@@ -114,26 +138,40 @@ const AdvancedPortfolio: React.FC = () => {
             } else {
                 setError(response.data.error || 'Failed to build portfolio');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error building advanced portfolio:', error);
-            setError('Failed to build portfolio. Please try again.');
+            if (error.response?.status === 401) {
+                setError('Please log in to use advanced portfolio features');
+            } else {
+                setError('Failed to build portfolio. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
     };
 
     const handleCompareMethods = async () => {
+        if (!isAuthenticated) {
+            setError('Please log in to use advanced portfolio features');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
         try {
-            const response = await axios.post('/portfolio/compare-methods', {
+            const response = await axios.post(API_ENDPOINTS.PORTFOLIO_COMPARE_METHODS, {
                 investing_amount: investingAmount,
                 max_stock_price: maxStockPrice,
                 risk_tolerance: riskTolerance,
                 sector: sector,
                 index: index,
                 stock_type: stockType
+            }, {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             });
 
             if (response.data.success) {
@@ -142,26 +180,40 @@ const AdvancedPortfolio: React.FC = () => {
             } else {
                 setError(response.data.error || 'Failed to compare methods');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error comparing methods:', error);
-            setError('Failed to compare methods. Please try again.');
+            if (error.response?.status === 401) {
+                setError('Please log in to use advanced portfolio features');
+            } else {
+                setError('Failed to compare methods. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
     };
 
     const handleBacktest = async () => {
+        if (!isAuthenticated) {
+            setError('Please log in to use advanced portfolio features');
+            return;
+        }
+
         setLoading(true);
         setError('');
 
         try {
-            const response = await axios.post('/portfolio/backtest', {
+            const response = await axios.post(API_ENDPOINTS.PORTFOLIO_BACKTEST, {
                 investing_amount: investingAmount,
                 max_stock_price: maxStockPrice,
                 risk_tolerance: riskTolerance,
                 sector: sector,
                 index: index,
                 stock_type: stockType
+            }, {
+                withCredentials: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
             });
 
             if (response.data.success) {
@@ -171,9 +223,13 @@ const AdvancedPortfolio: React.FC = () => {
             } else {
                 setError(response.data.error || 'Failed to run backtest');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error running backtest:', error);
-            setError('Failed to run backtest. Please try again.');
+            if (error.response?.status === 401) {
+                setError('Please log in to use advanced portfolio features');
+            } else {
+                setError('Failed to run backtest. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -219,6 +275,11 @@ const AdvancedPortfolio: React.FC = () => {
                             </Button>
                         </Card.Header>
                         <Card.Body>
+                            {!isAuthenticated && (
+                                <Alert variant="warning" className="mb-3">
+                                    <strong>Authentication Required:</strong> Please log in to use advanced portfolio optimization features.
+                                </Alert>
+                            )}
                             <Row>
                                 <Col md={3}>
                                     <Form.Group className="mb-3">
@@ -318,7 +379,7 @@ const AdvancedPortfolio: React.FC = () => {
                                         <Button
                                             variant="primary"
                                             onClick={handleAdvancedOptimization}
-                                            disabled={loading}
+                                            disabled={loading || !isAuthenticated}
                                         >
                                             {loading ? 'Optimizing...' : 'Build Portfolio'}
                                         </Button>
@@ -330,7 +391,7 @@ const AdvancedPortfolio: React.FC = () => {
                                     <Button
                                         variant="outline-success"
                                         onClick={handleCompareMethods}
-                                        disabled={loading}
+                                        disabled={loading || !isAuthenticated}
                                         className="me-2"
                                     >
                                         Compare Methods
@@ -338,7 +399,7 @@ const AdvancedPortfolio: React.FC = () => {
                                     <Button
                                         variant="outline-warning"
                                         onClick={handleBacktest}
-                                        disabled={loading}
+                                        disabled={loading || !isAuthenticated}
                                     >
                                         Run Backtest
                                     </Button>

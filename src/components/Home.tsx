@@ -2,7 +2,9 @@ import axios from 'axios';
 import React, { useState } from 'react';
 import { Button, Card, Col, Container, Form, Row } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { API_ENDPOINTS } from '../config/api';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface NewsItem {
     title: string;
     link: string;
@@ -18,7 +20,7 @@ const Home: React.FC = () => {
         setSubscribeLoading(true);
 
         try {
-            await axios.post('/subscribe', {
+            await axios.post(API_ENDPOINTS.SUBSCRIBE, {
                 email: subscribeEmail
             }, {
                 headers: {
@@ -153,6 +155,23 @@ const Home: React.FC = () => {
                                 <Link to="/portfolio" className="btn btn-outline-danger">
                                     <i className="fas fa-arrow-right me-2"></i>
                                     Risk Tools
+                                </Link>
+                            </Card.Body>
+                        </Card>
+                    </Col>
+                    <Col lg={4} md={6} className="mb-4">
+                        <Card className="h-100 feature-card">
+                            <Card.Body className="text-center p-4">
+                                <div className="feature-icon mb-3">
+                                    <i className="fas fa-brain fa-3x text-purple"></i>
+                                </div>
+                                <h5 className="card-title fw-bold mb-3">AI-Powered Analysis</h5>
+                                <p className="card-text text-muted">
+                                    Advanced machine learning models for sentiment analysis and intelligent stock recommendations.
+                                </p>
+                                <Link to="/ai-analysis" className="btn btn-outline-purple">
+                                    <i className="fas fa-arrow-right me-2"></i>
+                                    AI Insights
                                 </Link>
                             </Card.Body>
                         </Card>

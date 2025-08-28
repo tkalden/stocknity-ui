@@ -1,64 +1,8 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, Card, Col, Container, Form, Row, Table } from 'react-bootstrap';
-
-interface StockData {
-    Ticker: string;
-    Company?: string;
-    Sector: string;
-    Index: string;
-    price: string;
-    Change: string;
-    Volume: string;
-    "Market Cap": string;
-    pe: string;
-    fpe: string;
-    peg: string;
-    "Debt/Eq": string;
-    ROIC: string;
-    roe: string;
-    "52W High": string;
-    "52W Low": string;
-    ATR: string;
-    "Avg Volume": string;
-    "Change from Open": string;
-    "Curr R": string;
-    "EPS Next 5Y": string;
-    "EPS Next Y": string;
-    "EPS Past 5Y": string;
-    "EPS This Y": string;
-    Earnings: string;
-    Float: string;
-    Gap: string;
-    "Gross M": string;
-    "Insider Trans": string;
-    "Inst Own": string;
-    "Inst Trans": string;
-    "LTDebt/Eq": string;
-    "Oper M": string;
-    Outstanding: string;
-    "P/FCF": string;
-    "P/S": string;
-    "Profit M": string;
-    "Quick R": string;
-    ROA: string;
-    RSI: string;
-    SMA20: string;
-    SMA200: string;
-    SMA50: string;
-    "Sales Past 5Y": string;
-    "Short Float": string;
-    "Short Ratio": string;
-    beta: string;
-    dividend: string;
-    expected_annual_return: string;
-    expected_annual_risk: string;
-    insider_own: string;
-    pb: string;
-    pc: string;
-    return_risk_ratio: string;
-    strength?: string;
-}
+import { API_BASE_URL, API_ENDPOINTS, indices, sectors } from '../config/api';
+import { StockData } from '../types';
 
 const Screener: React.FC = () => {
     const [sector, setSector] = useState('Any');
@@ -67,11 +11,9 @@ const Screener: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const sectors = ['Any', 'Technology', 'Healthcare', 'Financial', 'Consumer Cyclical', 'Industrials', 'Consumer Defensive', 'Energy', 'Basic Materials', 'Real Estate', 'Communication Services', 'Utilities'];
-    const indices = ['S&P 500', 'DJIA'];
-
     useEffect(() => {
         fetchStockData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchStockData = async () => {
@@ -79,7 +21,12 @@ const Screener: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.get('/screener/data');
+            const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.SCREENER_DATA}`, {
+                params: {
+                    sector: sector,
+                    index: index
+                }
+            });
             if (response.data && response.data.data) {
                 setStockData(response.data.data);
             }
@@ -93,28 +40,7 @@ const Screener: React.FC = () => {
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
-        setLoading(true);
-        setError('');
-
-        try {
-            const formData = new FormData();
-            formData.append('sector', sector);
-            formData.append('index', index);
-
-            await axios.post('/screener', formData, {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-            });
-
-            // Fetch updated data
-            await fetchStockData();
-        } catch (error) {
-            console.error('Error searching stocks:', error);
-            setError('Failed to search stocks. Please try again.');
-        } finally {
-            setLoading(false);
-        }
+        await fetchStockData();
     };
 
     const formatNumber = (value: string) => {
@@ -155,6 +81,9 @@ const Screener: React.FC = () => {
                     <Card className="mb-4">
                         <Card.Header as="h4">Stock Screener</Card.Header>
                         <Card.Body>
+                            <small className="text-muted mb-3 d-block">
+                                Get real-time stock data with smart caching for faster results.
+                            </small>
                             <Form onSubmit={handleSearch}>
                                 <Row>
                                     <Col md={4}>
@@ -190,7 +119,7 @@ const Screener: React.FC = () => {
                                             disabled={loading}
                                             className="w-100"
                                         >
-                                            {loading ? 'Searching...' : 'Search'}
+                                            {loading ? 'Getting Data...' : 'Search Stocks'}
                                         </Button>
                                     </Col>
                                 </Row>
@@ -201,7 +130,9 @@ const Screener: React.FC = () => {
                     {error && <Alert variant="danger">{error}</Alert>}
 
                     <Card>
-                        <Card.Header as="h5">Stock Data ({stockData.length} stocks)</Card.Header>
+                        <Card.Header as="h5">
+                            Stock Data ({stockData.length} stocks)
+                        </Card.Header>
                         <Card.Body>
                             {loading ? (
                                 <div className="text-center py-4">
