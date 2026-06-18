@@ -1,5 +1,6 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import React from 'react';
+import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
 import AdvancedMode from './components/AdvancedMode';
 import AdvancedPortfolio from './components/AdvancedPortfolio';
@@ -14,7 +15,15 @@ import Portfolio from './components/Portfolio';
 import Profile from './components/Profile';
 import Screener from './components/Screener';
 import Signup from './components/Signup';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
+
+const AdminRoute: React.FC<{ element: React.ReactElement }> = ({ element }) => {
+  const { user, isAuthenticated } = useAuth();
+  const isAdmin = user?.isAdmin;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAdmin) return <Navigate to="/" replace />;
+  return element;
+};
 
 function App() {
   return (
@@ -35,7 +44,7 @@ function App() {
               <Route path="/advanced-portfolio" element={<AdvancedPortfolio />} />
               <Route path="/beginner-mode" element={<BeginnerMode />} />
               <Route path="/advanced-mode" element={<AdvancedMode />} />
-              <Route path="/cache-status" element={<CacheMonitor />} />
+              <Route path="/cache-status" element={<AdminRoute element={<CacheMonitor />} />} />
             </Routes>
           </main>
         </div>

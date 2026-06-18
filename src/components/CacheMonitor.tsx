@@ -10,53 +10,125 @@ interface CacheStatus {
     count?: number;
     timestamp?: string;
     source?: string;
-    version?: string;
 }
+
+interface BatchStatus {
+    status: string;
+    total?: number;
+    success?: number;
+    failed?: number;
+    elapsedMs?: number;
+    timestamp?: string;
+}
+
+const statusBadge = (status: string) => {
+    const map: Record<string, string> = {
+        cached: 'success',
+        not_cached: 'warning',
+        redis_unavailable: 'danger',
+        completed: 'success',
+        running: 'primary',
+        failed: 'danger',
+        never_run: 'secondary',
+        already_running: 'warning',
+        triggered: 'info',
+    };
+    return <Badge bg={map[status] ?? 'secondary'}>{status.replace('_', ' ').toUpperCase()}</Badge>;
+};
+
+const ttlPercent = (ttlSeconds?: number) => {
+    if (!ttlSeconds || ttlSeconds <= 0) return 0;
+    return Math.max(0, Math.min(100, (ttlSeconds / (24 * 3600)) * 100));
+};
+
+const ttlVariant = (pct: number) => {
+    if (pct > 75) return 'success';
+    if (pct > 50) return 'warning';
+    if (pct > 25) return 'info';
+    return 'danger';
+};
+
+const fmtTime = (ts?: string) => {
+    if (!ts) return 'N/A';
+    try { return new Date(ts).toLocaleString(); } catch { return ts; }
+};
 
 const CacheMonitor: React.FC = () => {
     const [cacheStatus, setCacheStatus] = useState<CacheStatus | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [batchStatus, setBatchStatus] = useState<BatchStatus | null>(null);
+    const [cacheLoading, setCacheLoading] = useState(false);
+    const [batchLoading, setBatchLoading] = useState(false);
+    const [triggering, setTriggering] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
     const fetchCacheStatus = async () => {
-        setLoading(true);
-        setError('');
-
+        setCacheLoading(true);
         try {
-            const response = await api.get(API_ENDPOINTS.ADMIN_CACHE_STATUS);
-            if (response.success && (response as any).cache_status) {
-                setCacheStatus((response as any).cache_status);
+            const resp = await api.get(API_ENDPOINTS.ADMIN_CACHE_STATUS);
+            const data = (resp as any).cache_status ?? (resp.data as any)?.cache_status;
+            if (data) {
+                setCacheStatus(data);
                 setLastUpdated(new Date());
-            } else if (response.success && (response.data as any)?.cache_status) {
-                setCacheStatus((response.data as any).cache_status);
-                setLastUpdated(new Date());
-            } else {
-                setError('Failed to fetch cache status');
             }
-        } catch (error) {
-            console.error('Error fetching cache status:', error);
-            setError('Failed to fetch cache status');
+        } catch {
+            // non-fatal
         } finally {
-            setLoading(false);
+            setCacheLoading(false);
         }
     };
 
-    const refreshCache = async () => {
+    const fetchBatchStatus = async () => {
+        setBatchLoading(true);
+        try {
+            const resp = await api.get(API_ENDPOINTS.BATCH_STATUS);
+            const data = (resp.data as any) ?? resp;
+            if (data && data.status) setBatchStatus(data);
+        } catch {
+            // non-fatal
+        } finally {
+            setBatchLoading(false);
+        }
+    };
+
+    const triggerBatch = async () => {
+        setTriggering(true);
+        setError('');
+        setSuccess('');
+        try {
+            const resp = await api.post(API_ENDPOINTS.BATCH_TRIGGER, {});
+            const data = (resp.data as any) ?? resp;
+            if (data?.status === 'triggered') {
+                setSuccess('Batch job triggered. Fetching ~500 tickers + flushing screener cache. Takes ~2 min.');
+                setTimeout(fetchBatchStatus, 3000);
+            } else if (data?.status === 'already_running') {
+                setError('Batch already running — wait for it to finish.');
+            } else {
+                setError('Unexpected response from batch trigger.');
+            }
+        } catch (e: any) {
+            setError(`Batch trigger failed: ${e?.message ?? 'unknown error'}`);
+        } finally {
+            setTriggering(false);
+        }
+    };
+
+    const forceRefreshCache = async () => {
         setRefreshing(true);
         setError('');
-
+        setSuccess('');
         try {
-            const response = await api.post(API_ENDPOINTS.ADMIN_CACHE_REFRESH, {});
-            if (response.success) {
+            const resp = await api.post(API_ENDPOINTS.ADMIN_CACHE_REFRESH, {});
+            if (resp.success) {
+                setSuccess('Screener strength cache flushed — next request recomputes from FMP data.');
                 await fetchCacheStatus();
             } else {
-                setError('Failed to refresh cache');
+                setError('Cache refresh failed.');
             }
-        } catch (error) {
-            console.error('Error refreshing cache:', error);
-            setError('Failed to refresh cache');
+        } catch (e: any) {
+            setError(`Cache refresh failed: ${e?.message ?? 'unknown error'}`);
         } finally {
             setRefreshing(false);
         }
@@ -64,242 +136,177 @@ const CacheMonitor: React.FC = () => {
 
     useEffect(() => {
         fetchCacheStatus();
-
-        // Auto-refresh every 30 seconds
-        const interval = setInterval(fetchCacheStatus, 30000);
-        return () => clearInterval(interval);
+        fetchBatchStatus();
+        const iv = setInterval(() => {
+            fetchCacheStatus();
+            fetchBatchStatus();
+        }, 30000);
+        return () => clearInterval(iv);
     }, []);
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'cached':
-                return <Badge bg="success" className="fs-6">CACHED</Badge>;
-            case 'not_cached':
-                return <Badge bg="warning" className="fs-6">NOT CACHED</Badge>;
-            case 'redis_unavailable':
-                return <Badge bg="danger" className="fs-6">REDIS UNAVAILABLE</Badge>;
-            default:
-                return <Badge bg="secondary" className="fs-6">{status.toUpperCase()}</Badge>;
-        }
-    };
-
-    const formatTimestamp = (timestamp: string) => {
-        if (!timestamp) return 'N/A';
-        try {
-            return new Date(timestamp).toLocaleString();
-        } catch {
-            return timestamp;
-        }
-    };
-
-    const getTTLPercentage = (ttlSeconds?: number) => {
-        if (!ttlSeconds || ttlSeconds <= 0) return 0;
-        // Assuming 24-hour TTL (86400 seconds)
-        const maxTTL = 24 * 60 * 60;
-        return Math.max(0, Math.min(100, (ttlSeconds / maxTTL) * 100));
-    };
-
-    const getTTLVariant = (percentage: number) => {
-        if (percentage > 75) return 'success';
-        if (percentage > 50) return 'warning';
-        if (percentage > 25) return 'info';
-        return 'danger';
-    };
+    const pct = ttlPercent(cacheStatus?.ttl_seconds);
 
     return (
-        <Container fluid>
-            <Row className="mb-4">
+        <Container fluid className="py-4">
+            <Row className="mb-4 align-items-center">
                 <Col>
-                    <h2 className="text-primary">
-                        <i className="fas fa-database me-2"></i>
-                        Yahoo Finance Cache Monitor
-                    </h2>
-                    <p className="text-muted">
-                        Monitor the status and performance of Yahoo Finance data caching
-                    </p>
+                    <h2 className="mb-1">Admin Dashboard</h2>
+                    <p className="text-muted mb-0">Cache management and batch job controls</p>
+                </Col>
+                <Col xs="auto">
+                    <Button
+                        variant="outline-secondary"
+                        size="sm"
+                        onClick={() => { fetchCacheStatus(); fetchBatchStatus(); }}
+                        disabled={cacheLoading || batchLoading}
+                    >
+                        {(cacheLoading || batchLoading) ? <Spinner animation="border" size="sm" /> : '↻ Refresh'}
+                    </Button>
+                    {lastUpdated && (
+                        <small className="text-muted ms-2">Updated {lastUpdated.toLocaleTimeString()}</small>
+                    )}
                 </Col>
             </Row>
 
-            <Row className="mb-4">
-                <Col>
-                    <Card className="shadow-sm">
-                        <Card.Header className="bg-primary text-white d-flex justify-content-between align-items-center">
-                            <h5 className="mb-0">
-                                <i className="fas fa-chart-line me-2"></i>
-                                Cache Status Overview
-                            </h5>
-                            <div>
-                                <Button
-                                    variant="outline-light"
-                                    size="sm"
-                                    onClick={fetchCacheStatus}
-                                    disabled={loading}
-                                    className="me-2"
-                                >
-                                    {loading ? (
-                                        <>
-                                            <Spinner animation="border" size="sm" className="me-1" />
-                                            Loading...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <i className="fas fa-sync-alt me-1"></i>
-                                            Refresh
-                                        </>
-                                    )}
-                                </Button>
-                                {lastUpdated && (
-                                    <small className="text-light">
-                                        Last updated: {lastUpdated.toLocaleTimeString()}
-                                    </small>
-                                )}
-                            </div>
+            {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
+            {success && <Alert variant="success" dismissible onClose={() => setSuccess('')}>{success}</Alert>}
+
+            <Row className="g-4">
+                {/* Screener cache card */}
+                <Col lg={6}>
+                    <Card className="h-100">
+                        <Card.Header className="d-flex justify-content-between align-items-center">
+                            <strong>Screener Cache</strong>
+                            {cacheStatus ? statusBadge(cacheStatus.status) : <Spinner animation="border" size="sm" />}
                         </Card.Header>
                         <Card.Body>
-                            {error && (
-                                <Alert variant="danger" dismissible onClose={() => setError('')}>
-                                    <i className="fas fa-exclamation-triangle me-2"></i>
-                                    {error}
-                                </Alert>
-                            )}
-
                             {cacheStatus ? (
-                                <Row>
-                                    <Col lg={6} className="mb-3">
-                                        <div className="d-flex align-items-center mb-3">
-                                            <h6 className="mb-0 me-3">Status:</h6>
-                                            {getStatusBadge(cacheStatus.status)}
-                                        </div>
-
-                                        {cacheStatus.count && (
-                                            <div className="mb-3">
-                                                <h6>Records Cached:</h6>
-                                                <div className="d-flex align-items-center">
-                                                    <i className="fas fa-chart-bar text-primary me-2"></i>
-                                                    <span className="fs-5 fw-bold">{cacheStatus.count}</span>
-                                                    <span className="text-muted ms-2">stocks</span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {cacheStatus.ttl_seconds && (
-                                            <div className="mb-3">
-                                                <h6>Time to Live:</h6>
-                                                <div className="mb-2">
-                                                    <span className="fw-bold">{cacheStatus.ttl_human}</span>
-                                                </div>
-                                                <ProgressBar
-                                                    now={getTTLPercentage(cacheStatus.ttl_seconds)}
-                                                    variant={getTTLVariant(getTTLPercentage(cacheStatus.ttl_seconds))}
-                                                    className="mb-1"
-                                                />
-                                                <small className="text-muted">
-                                                    {Math.round(getTTLPercentage(cacheStatus.ttl_seconds))}% of TTL remaining
-                                                </small>
-                                            </div>
-                                        )}
-                                    </Col>
-
-                                    <Col lg={6} className="mb-3">
-                                        {cacheStatus.timestamp && (
-                                            <div className="mb-3">
-                                                <h6>Created:</h6>
-                                                <div className="d-flex align-items-center">
-                                                    <i className="fas fa-clock text-info me-2"></i>
-                                                    <span>{formatTimestamp(cacheStatus.timestamp)}</span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {cacheStatus.source && (
-                                            <div className="mb-3">
-                                                <h6>Data Source:</h6>
-                                                <div className="d-flex align-items-center">
-                                                    <i className="fas fa-external-link-alt text-success me-2"></i>
-                                                    <span>{cacheStatus.source}</span>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {cacheStatus.version && (
-                                            <div className="mb-3">
-                                                <h6>Cache Version:</h6>
-                                                <div className="d-flex align-items-center">
-                                                    <i className="fas fa-code text-warning me-2"></i>
-                                                    <span>{cacheStatus.version}</span>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </Col>
-                                </Row>
+                                <>
+                                    <Row className="mb-3 text-center">
+                                        <Col>
+                                            <div className="fs-4 fw-bold text-primary">{cacheStatus.count ?? '—'}</div>
+                                            <small className="text-muted">Stocks cached</small>
+                                        </Col>
+                                        <Col>
+                                            <div className="fs-6 fw-semibold">{cacheStatus.source ?? '—'}</div>
+                                            <small className="text-muted">Data source</small>
+                                        </Col>
+                                        <Col>
+                                            <div className="fs-6 fw-semibold">{cacheStatus.ttl_human ?? '—'}</div>
+                                            <small className="text-muted">TTL remaining</small>
+                                        </Col>
+                                    </Row>
+                                    {cacheStatus.ttl_seconds != null && (
+                                        <>
+                                            <ProgressBar now={pct} variant={ttlVariant(pct)} className="mb-1" />
+                                            <small className="text-muted">{Math.round(pct)}% of 24h TTL remaining</small>
+                                        </>
+                                    )}
+                                    {cacheStatus.timestamp && (
+                                        <p className="text-muted mt-2 mb-0" style={{ fontSize: 12 }}>
+                                            Cached at: {fmtTime(cacheStatus.timestamp)}
+                                        </p>
+                                    )}
+                                </>
                             ) : (
-                                <div className="text-center py-4">
-                                    <i className="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
-                                    <p className="text-muted">No cache status available</p>
-                                </div>
-                            )}
-
-                            {cacheStatus?.status === 'cached' && (
-                                <div className="mt-4 pt-3 border-top">
-                                    <div className="d-flex align-items-center justify-content-between">
-                                        <div>
-                                            <h6 className="mb-2">Cache Management:</h6>
-                                            <p className="text-muted mb-0">
-                                                Force refresh to fetch fresh data from Yahoo Finance
-                                            </p>
-                                        </div>
-                                        <Button
-                                            variant="warning"
-                                            onClick={refreshCache}
-                                            disabled={refreshing}
-                                            size="lg"
-                                        >
-                                            {refreshing ? (
-                                                <>
-                                                    <Spinner animation="border" size="sm" className="me-2" />
-                                                    Refreshing...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <i className="fas fa-sync me-2"></i>
-                                                    Force Refresh Cache
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </div>
+                                <p className="text-muted">Loading cache status…</p>
                             )}
                         </Card.Body>
+                        <Card.Footer>
+                            <Button
+                                variant="outline-warning"
+                                size="sm"
+                                onClick={forceRefreshCache}
+                                disabled={refreshing}
+                            >
+                                {refreshing ? <><Spinner animation="border" size="sm" className="me-1" />Flushing…</> : '🗑 Flush strength_data cache'}
+                            </Button>
+                            <small className="text-muted ms-2">Forces screener to recompute on next request</small>
+                        </Card.Footer>
+                    </Card>
+                </Col>
+
+                {/* Batch job card */}
+                <Col lg={6}>
+                    <Card className="h-100">
+                        <Card.Header className="d-flex justify-content-between align-items-center">
+                            <strong>Batch Job (Data Refresh)</strong>
+                            {batchStatus ? statusBadge(batchStatus.status) : <Spinner animation="border" size="sm" />}
+                        </Card.Header>
+                        <Card.Body>
+                            {batchStatus ? (
+                                <>
+                                    <Row className="mb-3 text-center">
+                                        <Col>
+                                            <div className="fs-4 fw-bold text-success">{batchStatus.success ?? '—'}</div>
+                                            <small className="text-muted">Tickers fetched</small>
+                                        </Col>
+                                        <Col>
+                                            <div className="fs-4 fw-bold text-danger">{batchStatus.failed ?? '—'}</div>
+                                            <small className="text-muted">Failed</small>
+                                        </Col>
+                                        <Col>
+                                            <div className="fs-6 fw-semibold">
+                                                {batchStatus.elapsedMs ? `${(batchStatus.elapsedMs / 1000).toFixed(1)}s` : '—'}
+                                            </div>
+                                            <small className="text-muted">Duration</small>
+                                        </Col>
+                                    </Row>
+                                    {batchStatus.timestamp && (
+                                        <p className="text-muted mb-0" style={{ fontSize: 12 }}>
+                                            Last run: {fmtTime(batchStatus.timestamp)}
+                                        </p>
+                                    )}
+                                </>
+                            ) : (
+                                <p className="text-muted">Loading batch status…</p>
+                            )}
+                        </Card.Body>
+                        <Card.Footer>
+                            <Button
+                                variant="primary"
+                                size="sm"
+                                onClick={triggerBatch}
+                                disabled={triggering || batchStatus?.status === 'running'}
+                            >
+                                {triggering ? (
+                                    <><Spinner animation="border" size="sm" className="me-1" />Triggering…</>
+                                ) : batchStatus?.status === 'running' ? (
+                                    <><Spinner animation="border" size="sm" className="me-1" />Running…</>
+                                ) : (
+                                    '⚡ Run batch now'
+                                )}
+                            </Button>
+                            <small className="text-muted ms-2">
+                                Fetches all S&amp;P 500 tickers from FMP, flushes screener cache
+                            </small>
+                        </Card.Footer>
                     </Card>
                 </Col>
             </Row>
 
-            <Row>
+            <Row className="mt-4">
                 <Col>
-                    <Card className="shadow-sm">
-                        <Card.Header className="bg-info text-white">
-                            <h6 className="mb-0">
-                                <i className="fas fa-info-circle me-2"></i>
-                                Cache Information
-                            </h6>
-                        </Card.Header>
+                    <Card>
+                        <Card.Header><strong>What each action does</strong></Card.Header>
                         <Card.Body>
                             <Row>
                                 <Col md={6}>
-                                    <h6>Performance Benefits:</h6>
-                                    <ul className="list-unstyled">
-                                        <li><i className="fas fa-check text-success me-2"></i>1,800x faster than fresh Yahoo Finance fetches</li>
-                                        <li><i className="fas fa-check text-success me-2"></i>Automatic 24-hour TTL with refresh</li>
-                                        <li><i className="fas fa-check text-success me-2"></i>Fallback to mock data if Yahoo Finance fails</li>
-                                    </ul>
+                                    <p className="mb-1"><strong>Flush strength_data cache</strong></p>
+                                    <p className="text-muted small">
+                                        Deletes all <code>strength_data:*</code> Redis keys. Flask recomputes sector scores
+                                        on the next screener request using whatever fundamentals are already in Redis.
+                                        Fast — no API calls. Use when scores look stale but fundamentals are fresh.
+                                    </p>
                                 </Col>
                                 <Col md={6}>
-                                    <h6>Cache Features:</h6>
-                                    <ul className="list-unstyled">
-                                        <li><i className="fas fa-shield-alt text-primary me-2"></i>Real-time status monitoring</li>
-                                        <li><i className="fas fa-clock text-warning me-2"></i>Auto-refresh every 30 seconds</li>
-                                        <li><i className="fas fa-tools text-info me-2"></i>Manual refresh capability</li>
-                                    </ul>
+                                    <p className="mb-1"><strong>Run batch now</strong></p>
+                                    <p className="text-muted small">
+                                        Triggers the Spring Boot batch job: fetches fundamentals for all ~500 S&amp;P 500
+                                        tickers from Yahoo Finance + SEC EDGAR, writes <code>fundamentals:*</code> keys,
+                                        pre-computes chart scores, then flushes <code>strength_data:*</code> so screener
+                                        picks up new data. Takes ~2 minutes. Normally runs daily at 4:15 PM ET.
+                                    </p>
                                 </Col>
                             </Row>
                         </Card.Body>
@@ -310,4 +317,4 @@ const CacheMonitor: React.FC = () => {
     );
 };
 
-export default CacheMonitor; 
+export default CacheMonitor;

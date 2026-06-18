@@ -20,7 +20,7 @@ const Navigation: React.FC = () => {
         return location.pathname === path;
     };
 
-    const isAdmin = user?.is_admin || user?.email === 'admin@stocknity.com'; // Check both ways for admin
+    const isAdmin = user?.isAdmin;
 
     const handleNavClick = () => {
         setShowOffcanvas(false);

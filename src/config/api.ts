@@ -55,6 +55,10 @@ export const API_ENDPOINTS = {
     ADMIN_CACHE_STATUS: '/cache/status',
     ADMIN_CACHE_REFRESH: '/cache/refresh',
 
+    // Batch job (admin-only)
+    BATCH_STATUS: '/batch/status',
+    BATCH_TRIGGER: '/batch/trigger',
+
     // Scheduler Management
     SCHEDULER_START: '/scheduler/start',
     SCHEDULER_STOP: '/scheduler/stop',
