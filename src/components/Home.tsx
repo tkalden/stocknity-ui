@@ -5,9 +5,20 @@ import { Link } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
 import { usePriceWebSocket } from '../hooks/usePriceWebSocket';
 
+function isMarketOpen(): boolean {
+  const now = new Date();
+  const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const day = et.getDay(); // 0=Sun, 6=Sat
+  if (day === 0 || day === 6) return false;
+  const minutes = et.getHours() * 60 + et.getMinutes();
+  return minutes >= 570 && minutes < 960; // 9:30 AM–4:00 PM ET
+}
+
 const TickerTape: React.FC = () => {
   const { prices } = usePriceWebSocket();
   const baseRef = useRef<Record<string, number>>({});
+
+  if (!isMarketOpen()) return null;
 
   const entries = Object.entries(prices);
   if (entries.length === 0) return null;
