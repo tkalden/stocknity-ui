@@ -1,15 +1,19 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Card, Col, Container, Form, Row, Table } from 'react-bootstrap';
-import { API_BASE_URL, API_ENDPOINTS, indices, sectors } from '../config/api';
+import { Alert, Badge, Button, Card, Col, Container, Form, Row, Table } from 'react-bootstrap';
+import { API_BASE_URL, API_ENDPOINTS, sectors } from '../config/api';
 import { StockData } from '../types';
+
+type SortKey = keyof StockData;
+type SortDir = 'asc' | 'desc';
 
 const Screener: React.FC = () => {
     const [sector, setSector] = useState('Any');
-    const [index, setIndex] = useState('S&P 500');
     const [stockData, setStockData] = useState<StockData[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [sortKey, setSortKey] = useState<SortKey>('ticker');
+    const [sortDir, setSortDir] = useState<SortDir>('asc');
 
     useEffect(() => {
         fetchStockData();
@@ -19,19 +23,16 @@ const Screener: React.FC = () => {
     const fetchStockData = async () => {
         setLoading(true);
         setError('');
-
         try {
-            const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.SCREENER_DATA}`, {
-                params: {
-                    sector: sector,
-                    index: index
-                }
-            });
-            if (response.data && response.data.data) {
+            const params: Record<string, string> = {};
+            if (sector !== 'Any') params.sector = sector;
+
+            const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.SCREENER_DATA}`, { params });
+            if (response.data?.data) {
                 setStockData(response.data.data);
             }
-        } catch (error) {
-            console.error('Error fetching stock data:', error);
+        } catch (err) {
+            console.error('Error fetching stock data:', err);
             setError('Failed to load stock data. Please try again.');
         } finally {
             setLoading(false);
@@ -43,36 +44,45 @@ const Screener: React.FC = () => {
         await fetchStockData();
     };
 
-    const formatNumber = (value: string) => {
-        if (!value || value === 'nan') return '-';
-        const num = parseFloat(value);
-        if (isNaN(num)) return value;
-        return num.toLocaleString();
+    const fmt = (v: number | null | undefined, decimals = 2, suffix = '') => {
+        if (v == null || isNaN(v)) return '—';
+        return v.toFixed(decimals) + suffix;
     };
 
-    const formatPercentage = (value: string) => {
-        if (!value || value === 'nan') return '-';
-        const num = parseFloat(value);
-        if (isNaN(num)) return value;
-        return `${num.toFixed(2)}%`;
+    const changeColor = (v: number) => (v >= 0 ? 'text-success' : 'text-danger');
+
+    const handleSort = (key: SortKey) => {
+        if (sortKey === key) {
+            setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortKey(key);
+            setSortDir('asc');
+        }
     };
 
-    const formatCurrency = (value: string) => {
-        if (!value || value === 'nan') return '-';
-        const num = parseFloat(value);
-        if (isNaN(num)) return value;
-        return `$${num.toFixed(2)}`;
+    const sortedData = [...stockData].sort((a, b) => {
+        const av = a[sortKey];
+        const bv = b[sortKey];
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        let cmp = 0;
+        if (typeof av === 'string' && typeof bv === 'string') {
+            cmp = av.localeCompare(bv);
+        } else if (typeof av === 'boolean' && typeof bv === 'boolean') {
+            cmp = (av ? 1 : 0) - (bv ? 1 : 0);
+        } else {
+            cmp = (av as number) - (bv as number);
+        }
+        return sortDir === 'asc' ? cmp : -cmp;
+    });
+
+    const SortIcon = ({ col }: { col: SortKey }) => {
+        if (sortKey !== col) return <span style={{ color: 'var(--ink-500)', marginLeft: 4, fontSize: '0.7rem' }}>↕</span>;
+        return <span style={{ color: 'var(--electric-light)', marginLeft: 4, fontSize: '0.7rem' }}>{sortDir === 'asc' ? '↑' : '↓'}</span>;
     };
 
-    const formatMarketCap = (value: string) => {
-        if (!value || value === 'nan') return '-';
-        const num = parseFloat(value);
-        if (isNaN(num)) return value;
-        if (num >= 1e12) return `$${(num / 1e12).toFixed(2)}T`;
-        if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B`;
-        if (num >= 1e6) return `$${(num / 1e6).toFixed(2)}M`;
-        return `$${num.toLocaleString()}`;
-    };
+    const thStyle: React.CSSProperties = { cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' };
 
     return (
         <Container fluid>
@@ -81,11 +91,8 @@ const Screener: React.FC = () => {
                     <Card className="mb-4">
                         <Card.Header as="h4">Stock Screener</Card.Header>
                         <Card.Body>
-                            <small className="text-muted mb-3 d-block">
-                                Get real-time stock data with smart caching for faster results.
-                            </small>
                             <Form onSubmit={handleSearch}>
-                                <Row>
+                                <Row className="align-items-end">
                                     <Col md={4}>
                                         <Form.Group className="mb-3">
                                             <Form.Label>Sector</Form.Label>
@@ -99,28 +106,17 @@ const Screener: React.FC = () => {
                                             </Form.Select>
                                         </Form.Group>
                                     </Col>
-                                    <Col md={4}>
+                                    <Col md={2}>
                                         <Form.Group className="mb-3">
-                                            <Form.Label>Index</Form.Label>
-                                            <Form.Select
-                                                value={index}
-                                                onChange={(e) => setIndex(e.target.value)}
+                                            <Button
+                                                type="submit"
+                                                variant="primary"
+                                                disabled={loading}
+                                                className="w-100"
                                             >
-                                                {indices.map((i) => (
-                                                    <option key={i} value={i}>{i}</option>
-                                                ))}
-                                            </Form.Select>
+                                                {loading ? 'Loading…' : 'Search'}
+                                            </Button>
                                         </Form.Group>
-                                    </Col>
-                                    <Col md={4} className="d-flex align-items-end">
-                                        <Button
-                                            type="submit"
-                                            variant="primary"
-                                            disabled={loading}
-                                            className="w-100"
-                                        >
-                                            {loading ? 'Getting Data...' : 'Search Stocks'}
-                                        </Button>
                                     </Col>
                                 </Row>
                             </Form>
@@ -131,77 +127,51 @@ const Screener: React.FC = () => {
 
                     <Card>
                         <Card.Header as="h5">
-                            Stock Data ({stockData.length} stocks)
+                            Results ({stockData.length} stocks)
                         </Card.Header>
                         <Card.Body>
                             {loading ? (
                                 <div className="text-center py-4">
                                     <div className="spinner-border" role="status">
-                                        <span className="visually-hidden">Loading...</span>
+                                        <span className="visually-hidden">Loading…</span>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="table-responsive screener-table">
-                                    <Table striped bordered hover size="sm">
+                                    <Table striped hover size="sm">
                                         <thead>
                                             <tr>
-                                                <th>Ticker</th>
-                                                <th>Sector</th>
-                                                <th>Index</th>
-                                                <th>Price</th>
-                                                <th>Change</th>
-                                                <th>Market Cap</th>
-                                                <th>P/E</th>
-                                                <th>Forward P/E</th>
-                                                <th>PEG</th>
-                                                <th>Debt/Eq</th>
-                                                <th>ROIC</th>
-                                                <th>ROE</th>
-                                                <th>ROA</th>
-                                                <th>Profit M</th>
-                                                <th>Oper M</th>
-                                                <th>Gross M</th>
-                                                <th>Beta</th>
-                                                <th>RSI</th>
-                                                <th>52W High</th>
-                                                <th>52W Low</th>
-                                                <th>Volume</th>
-                                                <th>Avg Volume</th>
-                                                <th>Expected Return</th>
-                                                <th>Expected Risk</th>
-                                                <th>Return/Risk</th>
+                                                <th style={thStyle} onClick={() => handleSort('ticker')}>Ticker <SortIcon col="ticker" /></th>
+                                                <th style={thStyle} onClick={() => handleSort('sector')}>Sector <SortIcon col="sector" /></th>
+                                                <th style={thStyle} onClick={() => handleSort('price')}>Price <SortIcon col="price" /></th>
+                                                <th style={thStyle} onClick={() => handleSort('todayChange')}>Today % <SortIcon col="todayChange" /></th>
+                                                <th style={thStyle} onClick={() => handleSort('annualReturn')}>1Y Return <SortIcon col="annualReturn" /></th>
+                                                <th style={thStyle} onClick={() => handleSort('dividend')}>Dividend <SortIcon col="dividend" /></th>
+                                                <th style={thStyle} onClick={() => handleSort('pe')}>P/E <SortIcon col="pe" /></th>
+                                                <th style={thStyle} onClick={() => handleSort('pb')}>P/B <SortIcon col="pb" /></th>
+                                                <th style={thStyle} onClick={() => handleSort('isLive')}>Feed <SortIcon col="isLive" /></th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {stockData.map((stock, index) => (
-                                                <tr key={index}>
-                                                    <td><strong>{stock.Ticker}</strong></td>
-                                                    <td>{stock.Sector}</td>
-                                                    <td>{stock.Index}</td>
-                                                    <td>{formatCurrency(stock.price)}</td>
-                                                    <td className={parseFloat(stock.Change) >= 0 ? 'text-success' : 'text-danger'}>
-                                                        {formatPercentage(stock.Change)}
+                                            {sortedData.map((stock) => (
+                                                <tr key={stock.ticker}>
+                                                    <td><strong style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.8rem' }}>{stock.ticker}</strong></td>
+                                                    <td>{stock.sector}</td>
+                                                    <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>${fmt(stock.price)}</td>
+                                                    <td className={changeColor(stock.todayChange)} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                                                        {fmt(stock.todayChange)}%
                                                     </td>
-                                                    <td>{formatMarketCap(stock["Market Cap"])}</td>
-                                                    <td>{formatNumber(stock.pe)}</td>
-                                                    <td>{formatNumber(stock.fpe)}</td>
-                                                    <td>{formatNumber(stock.peg)}</td>
-                                                    <td>{formatNumber(stock["Debt/Eq"])}</td>
-                                                    <td>{formatPercentage(stock.ROIC)}</td>
-                                                    <td>{formatPercentage(stock.roe)}</td>
-                                                    <td>{formatPercentage(stock.ROA)}</td>
-                                                    <td>{formatPercentage(stock["Profit M"])}</td>
-                                                    <td>{formatPercentage(stock["Oper M"])}</td>
-                                                    <td>{formatPercentage(stock["Gross M"])}</td>
-                                                    <td>{formatNumber(stock.beta)}</td>
-                                                    <td>{formatNumber(stock.RSI)}</td>
-                                                    <td>{formatCurrency(stock["52W High"])}</td>
-                                                    <td>{formatCurrency(stock["52W Low"])}</td>
-                                                    <td>{formatNumber(stock.Volume)}</td>
-                                                    <td>{formatNumber(stock["Avg Volume"])}</td>
-                                                    <td className="text-success">{formatPercentage(stock.expected_annual_return)}</td>
-                                                    <td className="text-warning">{formatPercentage(stock.expected_annual_risk)}</td>
-                                                    <td className="text-info">{formatNumber(stock.return_risk_ratio)}</td>
+                                                    <td className={changeColor(stock.annualReturn)} style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                                                        {fmt(stock.annualReturn)}%
+                                                    </td>
+                                                    <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>{fmt(stock.dividend)}%</td>
+                                                    <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>{fmt(stock.pe)}</td>
+                                                    <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>{fmt(stock.pb)}</td>
+                                                    <td>
+                                                        <Badge bg={stock.isLive ? 'success' : 'secondary'} style={{ fontSize: '0.65rem' }}>
+                                                            {stock.isLive ? '● Live' : '○ Delayed'}
+                                                        </Badge>
+                                                    </td>
                                                 </tr>
                                             ))}
                                         </tbody>
@@ -216,4 +186,4 @@ const Screener: React.FC = () => {
     );
 };
 
-export default Screener; 
+export default Screener;

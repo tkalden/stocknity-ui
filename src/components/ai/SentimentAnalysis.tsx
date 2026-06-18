@@ -1,6 +1,6 @@
 import axios from 'axios';
 import React, { useState } from 'react';
-import { Alert, Badge, Button, Card, Col, Form, Row, Table } from 'react-bootstrap';
+import { Alert, Col, Row, Table } from 'react-bootstrap';
 import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
 import { SentimentAnalysisData } from '../../types';
 
@@ -12,18 +12,15 @@ const SentimentAnalysis: React.FC<SentimentAnalysisProps> = ({ onSentimentUpdate
     const [sentimentData, setSentimentData] = useState<SentimentAnalysisData | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectedTicker, setSelectedTicker] = useState('AAPL');
+    const [ticker, setTicker] = useState('AAPL');
 
-    const fetchSentiment = async (ticker: string) => {
-        if (!ticker || ticker.trim() === '') {
-            setError('Please enter a valid stock ticker');
-            return;
-        }
-
+    const fetchSentiment = async () => {
+        const sym = ticker.trim().toUpperCase();
+        if (!sym) { setError('Enter a ticker symbol'); return; }
         try {
             setLoading(true);
             setError(null);
-            const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.AI_SENTIMENT(ticker.trim().toUpperCase())}`);
+            const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.AI_SENTIMENT(sym)}`);
             setSentimentData(response.data);
             onSentimentUpdate?.(response.data);
         } catch (err) {
@@ -34,125 +31,107 @@ const SentimentAnalysis: React.FC<SentimentAnalysisProps> = ({ onSentimentUpdate
         }
     };
 
-    const getSentimentColor = (sentiment: number) => {
-        if (sentiment > 0.1) return 'success';
-        if (sentiment < -0.1) return 'danger';
-        return 'warning';
+    const sentimentColor = (s: number) => {
+        if (s > 0.1) return 'var(--gain)';
+        if (s < -0.1) return 'var(--loss)';
+        return 'var(--amber)';
     };
 
-    const getSentimentLabel = (sentiment: number) => {
-        if (sentiment > 0.1) return 'Positive';
-        if (sentiment < -0.1) return 'Negative';
+    const sentimentLabel = (s: number) => {
+        if (s > 0.1) return 'Positive';
+        if (s < -0.1) return 'Negative';
         return 'Neutral';
     };
 
-    return (
-        <Card className="mb-4">
-            <Card.Header>
-                <h5>Sentiment Analysis</h5>
-            </Card.Header>
-            <Card.Body>
-                {error && <Alert variant="danger">{error}</Alert>}
+    const sentimentBg = (s: number) => {
+        if (s > 0.1) return 'success';
+        if (s < -0.1) return 'danger';
+        return 'warning';
+    };
 
-                <Row>
-                    <Col lg={6} md={12} className="mb-3">
-                        <Form.Group className="mb-3">
-                            <Form.Label>Stock Ticker</Form.Label>
-                            <Form.Control
-                                type="text"
-                                value={selectedTicker}
-                                onChange={(e) => setSelectedTicker(e.target.value.toUpperCase())}
-                                placeholder="Enter ticker (e.g., AAPL)"
-                                minLength={1}
-                                required
-                            />
-                            {!selectedTicker.trim() && (
-                                <Form.Text className="text-muted">
-                                    Please enter a valid stock ticker symbol
-                                </Form.Text>
-                            )}
-                        </Form.Group>
-                        <Button
-                            variant="primary"
-                            onClick={() => fetchSentiment(selectedTicker)}
-                            disabled={loading || !selectedTicker.trim()}
-                            className="w-100 w-md-auto"
-                        >
-                            {loading ? 'Analyzing...' : 'Analyze Sentiment'}
-                        </Button>
-                    </Col>
-                    <Col lg={6} md={12}>
-                        {sentimentData && (
-                            <div>
-                                <h6>Overall Sentiment</h6>
-                                <Badge
-                                    bg={getSentimentColor(sentimentData.overall_sentiment)}
-                                    className="mb-2"
-                                >
-                                    {getSentimentLabel(sentimentData.overall_sentiment)}
-                                    ({sentimentData.overall_sentiment.toFixed(3)})
-                                </Badge>
-                                <div className="mb-2">
-                                    <small>Confidence: {(sentimentData.confidence * 100).toFixed(1)}%</small>
-                                </div>
-                                <div className="mb-2">
-                                    <small>Volume: {sentimentData.volume} mentions</small>
-                                </div>
-                                <div>
-                                    <small>
-                                        Positive: {sentimentData.positive_count} |
-                                        Negative: {sentimentData.negative_count} |
-                                        Neutral: {sentimentData.neutral_count}
-                                    </small>
-                                </div>
+    return (
+        <div>
+            {error && <Alert variant="danger" className="mb-3">{error}</Alert>}
+
+            <div className="d-flex gap-2 align-items-center flex-wrap mb-4">
+                <input
+                    type="text"
+                    className="ai-ticker-input"
+                    value={ticker}
+                    onChange={(e) => setTicker(e.target.value.toUpperCase())}
+                    placeholder="AAPL"
+                    onKeyDown={(e) => e.key === 'Enter' && fetchSentiment()}
+                />
+                <button
+                    className="sn-btn-primary"
+                    onClick={fetchSentiment}
+                    disabled={loading || !ticker.trim()}
+                    style={{ opacity: (loading || !ticker.trim()) ? 0.5 : 1 }}
+                >
+                    {loading ? 'Analyzing…' : 'Analyze sentiment'}
+                </button>
+            </div>
+
+            {sentimentData && (
+                <Row className="g-4">
+                    <Col lg={4} md={12}>
+                        <div style={{ background: 'var(--ink-700)', border: '1px solid var(--ink-500)', borderLeft: `3px solid ${sentimentColor(sentimentData.overall_sentiment)}`, borderRadius: 8, padding: '1.5rem' }}>
+                            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ink-500)', display: 'block', marginBottom: '0.75rem' }}>
+                                {ticker} · Overall
+                            </span>
+                            <div className="ai-sentiment-score" style={{ color: sentimentColor(sentimentData.overall_sentiment) }}>
+                                {sentimentLabel(sentimentData.overall_sentiment)}
                             </div>
-                        )}
+                            <div className="ai-sentiment-meta" style={{ marginTop: '0.75rem' }}>
+                                <div>Score: {sentimentData.overall_sentiment.toFixed(3)}</div>
+                                <div>Confidence: {(sentimentData.confidence * 100).toFixed(1)}%</div>
+                                <div>Volume: {sentimentData.volume} mentions</div>
+                                <div style={{ color: 'var(--gain)' }}>↑ {sentimentData.positive_count}</div>
+                                <div style={{ color: 'var(--loss)' }}>↓ {sentimentData.negative_count}</div>
+                                <div>– {sentimentData.neutral_count}</div>
+                            </div>
+                        </div>
+                    </Col>
+                    <Col lg={4} md={6}>
+                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ink-500)', display: 'block', marginBottom: '0.75rem' }}>
+                            By source
+                        </span>
+                        <div className="table-responsive">
+                            <Table size="sm" hover>
+                                <thead>
+                                    <tr>
+                                        <th>Source</th>
+                                        <th>Score</th>
+                                        <th>Volume</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {Object.entries(sentimentData.sources).map(([source, data]) => (
+                                        <tr key={source}>
+                                            <td style={{ textTransform: 'capitalize' }}>{source}</td>
+                                            <td style={{ fontFamily: 'JetBrains Mono, monospace', color: sentimentColor(data.sentiment) }}>
+                                                {data.sentiment.toFixed(3)}
+                                            </td>
+                                            <td style={{ fontFamily: 'JetBrains Mono, monospace', color: 'var(--ink-400)' }}>{data.volume}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </Table>
+                        </div>
+                    </Col>
+                    <Col lg={4} md={6}>
+                        <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ink-500)', display: 'block', marginBottom: '0.75rem' }}>
+                            Top keywords
+                        </span>
+                        <div className="d-flex flex-wrap gap-2">
+                            {sentimentData.top_keywords.map((kw, i) => (
+                                <span key={i} className="ai-keyword-chip">{kw}</span>
+                            ))}
+                        </div>
                     </Col>
                 </Row>
-
-                {sentimentData && (
-                    <Row className="mt-3">
-                        <Col lg={6} md={12} className="mb-3">
-                            <h6>Sentiment by Source</h6>
-                            <div className="table-responsive">
-                                <Table size="sm">
-                                    <thead>
-                                        <tr>
-                                            <th>Source</th>
-                                            <th>Sentiment</th>
-                                            <th>Volume</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {Object.entries(sentimentData.sources).map(([source, data]) => (
-                                            <tr key={source}>
-                                                <td>{source.charAt(0).toUpperCase() + source.slice(1)}</td>
-                                                <td>
-                                                    <Badge bg={getSentimentColor(data.sentiment)}>
-                                                        {data.sentiment.toFixed(3)}
-                                                    </Badge>
-                                                </td>
-                                                <td>{data.volume}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </Table>
-                            </div>
-                        </Col>
-                        <Col lg={6} md={12}>
-                            <h6>Top Keywords</h6>
-                            <div>
-                                {sentimentData.top_keywords.map((keyword, index) => (
-                                    <Badge key={index} bg="secondary" className="me-1 mb-1">
-                                        {keyword}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </Col>
-                    </Row>
-                )}
-            </Card.Body>
-        </Card>
+            )}
+        </div>
     );
 };
 

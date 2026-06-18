@@ -1,6 +1,6 @@
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
-import { Alert, Card, Col, Row, Table } from 'react-bootstrap';
+import { Alert } from 'react-bootstrap';
 import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
 import { ModelPerformanceData } from '../../types';
 
@@ -35,126 +35,90 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ onPerformanceUpdate
 
     if (loading) {
         return (
-            <Card>
-                <Card.Header>
-                    <h5>AI Model Performance</h5>
-                </Card.Header>
-                <Card.Body>
-                    <div className="text-center">Loading performance metrics...</div>
-                </Card.Body>
-            </Card>
+            <div className="text-center py-4">
+                <div className="spinner-border" role="status">
+                    <span className="visually-hidden">Loading…</span>
+                </div>
+            </div>
         );
     }
 
+    if (error) return <Alert variant="danger">{error}</Alert>;
+
+    if (!performance) return null;
+
     return (
-        <Card>
-            <Card.Header>
-                <h5>AI Model Performance</h5>
-            </Card.Header>
-            <Card.Body>
-                {error && <Alert variant="danger">{error}</Alert>}
+        <div>
+            <div className="ai-model-grid">
+                {/* Sentiment Model */}
+                <div className="ai-model-card">
+                    <span className="ai-model-name">Sentiment model</span>
+                    {[
+                        { label: 'Accuracy', value: `${(performance.models.sentiment.accuracy * 100).toFixed(1)}%` },
+                        { label: 'Precision', value: `${(performance.models.sentiment.precision * 100).toFixed(1)}%` },
+                        { label: 'Recall', value: `${(performance.models.sentiment.recall * 100).toFixed(1)}%` },
+                        { label: 'F1 Score', value: `${(performance.models.sentiment.f1_score * 100).toFixed(1)}%` },
+                    ].map(({ label, value }) => (
+                        <div key={label} className="ai-metric-row">
+                            <span className="ai-metric-label">{label}</span>
+                            <span className="ai-metric-value">{value}</span>
+                        </div>
+                    ))}
+                </div>
 
-                {performance && (
-                    <>
-                        <Row>
-                            <Col lg={4} md={6} className="mb-3">
-                                <h6>Sentiment Model</h6>
-                                <div className="table-responsive">
-                                    <Table size="sm">
-                                        <tbody>
-                                            <tr>
-                                                <td>Accuracy</td>
-                                                <td>{(performance.models.sentiment.accuracy * 100).toFixed(1)}%</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Precision</td>
-                                                <td>{(performance.models.sentiment.precision * 100).toFixed(1)}%</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Recall</td>
-                                                <td>{(performance.models.sentiment.recall * 100).toFixed(1)}%</td>
-                                            </tr>
-                                            <tr>
-                                                <td>F1 Score</td>
-                                                <td>{(performance.models.sentiment.f1_score * 100).toFixed(1)}%</td>
-                                            </tr>
-                                        </tbody>
-                                    </Table>
-                                </div>
-                            </Col>
-                            <Col lg={4} md={6} className="mb-3">
-                                <h6>Price Prediction Model</h6>
-                                <div className="table-responsive">
-                                    <Table size="sm">
-                                        <tbody>
-                                            <tr>
-                                                <td>MAE</td>
-                                                <td>{performance.models.price_prediction.mae.toFixed(3)}</td>
-                                            </tr>
-                                            <tr>
-                                                <td>RMSE</td>
-                                                <td>{performance.models.price_prediction.rmse.toFixed(3)}</td>
-                                            </tr>
-                                            <tr>
-                                                <td>R² Score</td>
-                                                <td>{(performance.models.price_prediction.r2_score * 100).toFixed(1)}%</td>
-                                            </tr>
-                                        </tbody>
-                                    </Table>
-                                </div>
-                            </Col>
-                            <Col lg={4} md={12}>
-                                <h6>Recommendation Model</h6>
-                                <div className="table-responsive">
-                                    <Table size="sm">
-                                        <tbody>
-                                            <tr>
-                                                <td>Win Rate</td>
-                                                <td>{(performance.models.recommendation.win_rate * 100).toFixed(1)}%</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Avg Return</td>
-                                                <td>{(performance.models.recommendation.avg_return * 100).toFixed(1)}%</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Sharpe Ratio</td>
-                                                <td>{performance.models.recommendation.sharpe_ratio.toFixed(2)}</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Max Drawdown</td>
-                                                <td>{(performance.models.recommendation.max_drawdown * 100).toFixed(1)}%</td>
-                                            </tr>
-                                        </tbody>
-                                    </Table>
-                                </div>
-                            </Col>
-                        </Row>
+                {/* Price Prediction Model */}
+                <div className="ai-model-card">
+                    <span className="ai-model-name">Price prediction</span>
+                    {[
+                        { label: 'MAE', value: performance.models.price_prediction.mae.toFixed(3) },
+                        { label: 'RMSE', value: performance.models.price_prediction.rmse.toFixed(3) },
+                        { label: 'R² Score', value: `${(performance.models.price_prediction.r2_score * 100).toFixed(1)}%` },
+                    ].map(({ label, value }) => (
+                        <div key={label} className="ai-metric-row">
+                            <span className="ai-metric-label">{label}</span>
+                            <span className="ai-metric-value">{value}</span>
+                        </div>
+                    ))}
+                </div>
 
-                        <Row className="mt-3">
-                            <Col>
-                                <h6>Overall Performance</h6>
-                                <Table size="sm">
-                                    <tbody>
-                                        <tr>
-                                            <td>Total Recommendations</td>
-                                            <td>{performance.overall_performance.total_recommendations}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Profitable Recommendations</td>
-                                            <td>{performance.overall_performance.profitable_recommendations}</td>
-                                        </tr>
-                                        <tr>
-                                            <td>Average Holding Period</td>
-                                            <td>{performance.overall_performance.avg_holding_period}</td>
-                                        </tr>
-                                    </tbody>
-                                </Table>
-                            </Col>
-                        </Row>
-                    </>
-                )}
-            </Card.Body>
-        </Card>
+                {/* Recommendation Model */}
+                <div className="ai-model-card">
+                    <span className="ai-model-name">Recommendation</span>
+                    {[
+                        { label: 'Win Rate', value: `${(performance.models.recommendation.win_rate * 100).toFixed(1)}%` },
+                        { label: 'Avg Return', value: `${(performance.models.recommendation.avg_return * 100).toFixed(1)}%` },
+                        { label: 'Sharpe Ratio', value: performance.models.recommendation.sharpe_ratio.toFixed(2) },
+                        { label: 'Max Drawdown', value: `${(performance.models.recommendation.max_drawdown * 100).toFixed(1)}%` },
+                    ].map(({ label, value }) => (
+                        <div key={label} className="ai-metric-row">
+                            <span className="ai-metric-label">{label}</span>
+                            <span className="ai-metric-value">{value}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Overall */}
+            <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: '0.65rem', letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--ink-500)', display: 'block', marginBottom: '1rem' }}>
+                Overall performance
+            </span>
+            <div className="ai-overall-grid">
+                <div className="ai-overall-item">
+                    <span className="ai-overall-num">{performance.overall_performance.total_recommendations}</span>
+                    <span className="ai-overall-label">Total recommendations</span>
+                </div>
+                <div className="ai-overall-item">
+                    <span className="ai-overall-num" style={{ color: 'var(--gain)' }}>
+                        {performance.overall_performance.profitable_recommendations}
+                    </span>
+                    <span className="ai-overall-label">Profitable</span>
+                </div>
+                <div className="ai-overall-item">
+                    <span className="ai-overall-num">{performance.overall_performance.avg_holding_period}</span>
+                    <span className="ai-overall-label">Avg holding period</span>
+                </div>
+            </div>
+        </div>
     );
 };
 

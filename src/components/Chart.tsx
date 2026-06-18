@@ -1,7 +1,8 @@
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Badge, Card, Col, Container, Nav, Row, Table } from 'react-bootstrap';
 import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
+import { usePriceWebSocket } from '../hooks/usePriceWebSocket';
 import { ChartData, ChartResponse } from '../types';
 
 const Chart: React.FC = () => {
@@ -9,6 +10,10 @@ const Chart: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [chartData, setChartData] = useState<ChartData[]>([]);
+    const { prices, lastUpdated, connected } = usePriceWebSocket();
+
+    // Track previous prices to determine up/down flash
+    const prevPricesRef = useRef<Record<string, number>>({});
 
     const handleChartView = async (chartType: string) => {
         setLoading(true);
@@ -16,56 +21,52 @@ const Chart: React.FC = () => {
         setActiveTab(chartType);
 
         try {
-            console.log(`Fetching ${chartType} chart data from: ${API_BASE_URL}${API_ENDPOINTS.CHART(chartType)}`);
+            const response = await axios.get<ChartResponse>(
+                `${API_BASE_URL}${API_ENDPOINTS.CHART(chartType)}`
+            );
 
-            const response = await axios.get<ChartResponse>(`${API_BASE_URL}${API_ENDPOINTS.CHART(chartType)}`, {
-                withCredentials: true,
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            console.log(`${chartType} chart response:`, response);
-
-            if (response.data && response.data.data) {
-                // Handle both single object and array responses
-                const data = Array.isArray(response.data.data) ? response.data.data : [response.data.data];
-                setChartData(data);
-                console.log(`${chartType} chart data set:`, data);
+            if (Array.isArray(response.data?.data)) {
+                setChartData(response.data.data);
             } else {
-                console.error(`No data in response for ${chartType} chart:`, response);
                 setError(`No data available for ${chartType} chart.`);
             }
-        } catch (error: any) {
-            console.error(`Error loading ${chartType} chart:`, error);
-            console.error('Error details:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status,
-                statusText: error.response?.statusText
-            });
-            setError(`Failed to load ${chartType} chart: ${error.response?.data?.error || error.message}`);
+        } catch (err: any) {
+            setError(`Failed to load ${chartType} chart: ${err.response?.data?.error || err.message}`);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        console.log('Chart component mounted, loading value chart...');
         handleChartView('value');
     }, []);
 
+    // Update prev prices after render
+    useEffect(() => {
+        prevPricesRef.current = { ...prices };
+    });
+
     const formatValue = (value: number | string) => {
-        const numValue = typeof value === 'string' ? parseFloat(value) : value;
-        return isNaN(numValue) ? '0.00' : numValue.toFixed(2);
+        const n = typeof value === 'string' ? parseFloat(value) : value;
+        return isNaN(n) ? '0.00' : n.toFixed(2);
     };
 
     const getValueColor = (value: number | string) => {
-        const numValue = typeof value === 'string' ? parseFloat(value) : value;
-        if (isNaN(numValue)) return 'text-muted';
-        if (numValue > 0) return 'text-success';
-        if (numValue < 0) return 'text-danger';
-        return 'text-muted';
+        const n = typeof value === 'string' ? parseFloat(value) : value;
+        if (isNaN(n)) return 'text-muted';
+        return n > 0 ? 'text-success' : n < 0 ? 'text-danger' : 'text-muted';
+    };
+
+    const getPriceFlashStyle = (ticker: string): React.CSSProperties => {
+        const current = prices[ticker];
+        const prev = prevPricesRef.current[ticker];
+        const updatedAt = lastUpdated[ticker];
+        const isRecent = updatedAt && Date.now() - updatedAt < 1500;
+
+        if (!current || !prev || !isRecent) return {};
+        if (current > prev) return { backgroundColor: 'rgba(25, 135, 84, 0.25)', transition: 'background-color 0.3s' };
+        if (current < prev) return { backgroundColor: 'rgba(220, 53, 69, 0.25)', transition: 'background-color 0.3s' };
+        return {};
     };
 
     return (
@@ -73,128 +74,116 @@ const Chart: React.FC = () => {
             <Row>
                 <Col>
                     <Card>
-                        <Card.Header as="h4">Market Analysis Charts</Card.Header>
+                        <Card.Header as="h4" className="d-flex justify-content-between align-items-center">
+                            Market Analysis Charts
+                            <Badge bg={connected ? 'success' : 'secondary'} style={{ fontSize: '0.75rem' }}>
+                                {connected ? '● Live' : '○ Offline'}
+                            </Badge>
+                        </Card.Header>
                         <Card.Body>
                             <Nav variant="tabs" className="mb-3">
-                                <Nav.Item>
-                                    <Nav.Link
-                                        active={activeTab === 'value'}
-                                        onClick={() => handleChartView('value')}
-                                    >
-                                        Value Stocks
-                                    </Nav.Link>
-                                </Nav.Item>
-                                <Nav.Item>
-                                    <Nav.Link
-                                        active={activeTab === 'growth'}
-                                        onClick={() => handleChartView('growth')}
-                                    >
-                                        Growth Stocks
-                                    </Nav.Link>
-                                </Nav.Item>
-                                <Nav.Item>
-                                    <Nav.Link
-                                        active={activeTab === 'dividend'}
-                                        onClick={() => handleChartView('dividend')}
-                                    >
-                                        Dividend Stocks
-                                    </Nav.Link>
-                                </Nav.Item>
+                                {['value', 'growth', 'dividend'].map(tab => (
+                                    <Nav.Item key={tab}>
+                                        <Nav.Link active={activeTab === tab} onClick={() => handleChartView(tab)}>
+                                            {tab.charAt(0).toUpperCase() + tab.slice(1)} Stocks
+                                        </Nav.Link>
+                                    </Nav.Item>
+                                ))}
                             </Nav>
 
                             {error && (
-                                <div className="alert alert-danger" role="alert">
+                                <div className="alert alert-danger">
                                     <strong>Error:</strong> {error}
                                 </div>
                             )}
 
                             {loading ? (
                                 <div className="text-center py-5">
-                                    <div className="spinner-border" role="status">
-                                        <span className="visually-hidden">Loading...</span>
-                                    </div>
+                                    <div className="spinner-border" role="status" />
                                     <p className="mt-2">Loading chart data...</p>
                                 </div>
                             ) : chartData.length > 0 ? (
-                                <div className="chart-container">
+                                <div>
                                     <div className="mb-4">
                                         <h5>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Stocks Analysis</h5>
                                         <p className="text-muted">
                                             {activeTab === 'value' && 'Top 5 value stocks by P/E, P/B, and dividend metrics'}
-                                            {activeTab === 'growth' && 'Top 5 growth stocks by sales growth, PEG, and forward P/E metrics'}
+                                            {activeTab === 'growth' && 'Top 5 growth stocks by sales growth, PEG, and forward P/E'}
                                             {activeTab === 'dividend' && 'Top 5 dividend stocks by yield percentage'}
                                         </p>
                                     </div>
 
-                                    {chartData.map((sector, sectorIndex) => (
-                                        <Card key={sectorIndex} className="mb-4">
+                                    {chartData.map((sector, sectorIdx) => (
+                                        <Card key={sectorIdx} className="mb-4">
                                             <Card.Header>
                                                 <h6 className="mb-0">
                                                     {sector.title}
-                                                    <Badge bg="info" className="ms-2">
-                                                        {sector.labels.length} stocks
-                                                    </Badge>
+                                                    <Badge bg="info" className="ms-2">{sector.labels.length} stocks</Badge>
                                                 </h6>
                                             </Card.Header>
                                             <Card.Body>
-                                                <div className="table-responsive">
-                                                    <Table striped bordered hover size="sm">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Rank</th>
-                                                                <th>Ticker</th>
-                                                                <th>
-                                                                    {activeTab === 'value' && 'Value Score'}
-                                                                    {activeTab === 'growth' && 'Growth Score'}
-                                                                    {activeTab === 'dividend' && 'Dividend Yield (%)'}
-                                                                </th>
-                                                                <th>Performance</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {sector.labels.map((ticker, tickerIndex) => (
-                                                                <tr key={tickerIndex}>
+                                                <Table striped bordered hover size="sm" className="table-responsive">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Rank</th>
+                                                            <th>Ticker</th>
+                                                            <th>
+                                                                {activeTab === 'value' && 'Value Score'}
+                                                                {activeTab === 'growth' && 'Growth Score'}
+                                                                {activeTab === 'dividend' && 'Dividend Yield (%)'}
+                                                            </th>
+                                                            <th>Performance</th>
+                                                            <th>Live Price</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {sector.labels.map((ticker, i) => {
+                                                            const livePrice = prices[ticker];
+                                                            return (
+                                                                <tr key={i} style={getPriceFlashStyle(ticker)}>
                                                                     <td>
-                                                                        <Badge bg={tickerIndex === 0 ? "warning" : "secondary"}>
-                                                                            #{tickerIndex + 1}
+                                                                        <Badge bg={i === 0 ? 'warning' : 'secondary'}>
+                                                                            #{i + 1}
                                                                         </Badge>
                                                                     </td>
+                                                                    <td><strong>{ticker}</strong></td>
                                                                     <td>
-                                                                        <strong>{ticker}</strong>
-                                                                    </td>
-                                                                    <td>
-                                                                        <span className={getValueColor(sector.values[tickerIndex])}>
-                                                                            {formatValue(sector.values[tickerIndex])}
+                                                                        <span className={getValueColor(sector.values[i])}>
+                                                                            {formatValue(sector.values[i])}
                                                                         </span>
                                                                     </td>
                                                                     <td>
                                                                         <div className="progress" style={{ height: '20px' }}>
                                                                             {(() => {
-                                                                                const value = sector.values[tickerIndex];
-                                                                                const numValue = typeof value === 'string' ? parseFloat(value) : value;
+                                                                                const n = sector.values[i];
                                                                                 return (
                                                                                     <div
-                                                                                        className={`progress-bar ${numValue > 0 ? 'bg-success' : 'bg-danger'}`}
+                                                                                        className={`progress-bar ${n > 0 ? 'bg-success' : 'bg-danger'}`}
                                                                                         role="progressbar"
-                                                                                        style={{
-                                                                                            width: `${Math.abs(numValue) * 10}%`,
-                                                                                            minWidth: '20px'
-                                                                                        }}
-                                                                                        aria-valuenow={Math.abs(numValue)}
-                                                                                        aria-valuemin={0}
-                                                                                        aria-valuemax={20}
+                                                                                        style={{ width: `${Math.min(Math.abs(n) * 10, 100)}%`, minWidth: '20px' }}
                                                                                     >
-                                                                                        {formatValue(value)}
+                                                                                        {formatValue(sector.values[i])}
                                                                                     </div>
                                                                                 );
                                                                             })()}
                                                                         </div>
                                                                     </td>
+                                                                    <td style={{ minWidth: '100px', fontFamily: 'monospace' }}>
+                                                                        {livePrice != null ? (
+                                                                            <span className="fw-bold">
+                                                                                ${livePrice.toFixed(2)}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>
+                                                                                {connected ? 'waiting…' : '—'}
+                                                                            </span>
+                                                                        )}
+                                                                    </td>
                                                                 </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </Table>
-                                                </div>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </Table>
                                             </Card.Body>
                                         </Card>
                                     ))}
@@ -202,14 +191,9 @@ const Chart: React.FC = () => {
                             ) : (
                                 <div className="text-center py-5">
                                     <h5>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Stocks Analysis</h5>
-                                    <p className="text-muted">
-                                        No chart data available. Please try again later.
-                                    </p>
-                                    <button
-                                        className="btn btn-primary"
-                                        onClick={() => handleChartView(activeTab)}
-                                    >
-                                        Retry Loading Data
+                                    <p className="text-muted">No chart data available.</p>
+                                    <button className="btn btn-primary" onClick={() => handleChartView(activeTab)}>
+                                        Retry
                                     </button>
                                 </div>
                             )}
@@ -221,4 +205,4 @@ const Chart: React.FC = () => {
     );
 };
 
-export default Chart; 
+export default Chart;

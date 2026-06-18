@@ -13,7 +13,7 @@ export type {
 } from './auth';
 
 export type {
-    ChartData, ChartResponse, ScreenerData, ScreenerResponse,
+    ChartData, ChartResponse, ScreenerResponse,
     // Stocks
     StockData
 } from './stocks';

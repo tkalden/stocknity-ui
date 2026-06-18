@@ -15,7 +15,11 @@ const apiClient = axios.create({
 // Request interceptor for authentication
 apiClient.interceptors.request.use(
     (config) => {
-        // Add any request headers here if needed
+        const token = localStorage.getItem('sn_token');
+        if (token) {
+            config.headers = config.headers || {};
+            config.headers['Authorization'] = `Bearer ${token}`;
+        }
         return config;
     },
     (error) => {

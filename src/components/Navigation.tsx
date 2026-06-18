@@ -51,6 +51,22 @@ const Navigation: React.FC = () => {
                         <Nav className="me-auto">
                             <Nav.Link
                                 as={Link}
+                                to="/beginner-mode"
+                                className={`me-2 ${isActive('/beginner-mode') ? 'active' : ''}`}
+                            >
+                                <i className="fas fa-graduation-cap me-1"></i>
+                                Beginner
+                            </Nav.Link>
+                            <Nav.Link
+                                as={Link}
+                                to="/advanced-mode"
+                                className={`me-2 ${isActive('/advanced-mode') ? 'active' : ''}`}
+                            >
+                                <i className="fas fa-rocket me-1"></i>
+                                Advanced
+                            </Nav.Link>
+                            <Nav.Link
+                                as={Link}
                                 to="/screener"
                                 className={`me-2 ${isActive('/screener') ? 'active' : ''}`}
                             >
@@ -65,14 +81,6 @@ const Navigation: React.FC = () => {
                                 <i className="fas fa-chart-bar me-1"></i>
                                 Charts
                             </Nav.Link>
-                            <Nav.Link
-                                as={Link}
-                                to="/ai-analysis"
-                                className={`me-2 ${isActive('/ai-analysis') ? 'active' : ''}`}
-                            >
-                                <i className="fas fa-robot me-1"></i>
-                                AI Analysis
-                            </Nav.Link>
                             {isAuthenticated && (
                                 <>
                                     <Nav.Link
@@ -82,14 +90,6 @@ const Navigation: React.FC = () => {
                                     >
                                         <i className="fas fa-briefcase me-1"></i>
                                         Portfolio
-                                    </Nav.Link>
-                                    <Nav.Link
-                                        as={Link}
-                                        to="/advanced-portfolio"
-                                        className={`me-2 ${isActive('/advanced-portfolio') ? 'active' : ''}`}
-                                    >
-                                        <i className="fas fa-rocket me-1"></i>
-                                        Advanced
                                     </Nav.Link>
                                     {isAdmin && (
                                         <Nav.Link
@@ -173,6 +173,24 @@ const Navigation: React.FC = () => {
                     <Nav className="flex-column">
                         <Nav.Link
                             as={Link}
+                            to="/beginner-mode"
+                            className={`mb-2 ${isActive('/beginner-mode') ? 'active' : ''}`}
+                            onClick={handleNavClick}
+                        >
+                            <i className="fas fa-graduation-cap me-2"></i>
+                            Beginner Mode
+                        </Nav.Link>
+                        <Nav.Link
+                            as={Link}
+                            to="/advanced-mode"
+                            className={`mb-2 ${isActive('/advanced-mode') ? 'active' : ''}`}
+                            onClick={handleNavClick}
+                        >
+                            <i className="fas fa-rocket me-2"></i>
+                            Advanced Mode
+                        </Nav.Link>
+                        <Nav.Link
+                            as={Link}
                             to="/screener"
                             className={`mb-2 ${isActive('/screener') ? 'active' : ''}`}
                             onClick={handleNavClick}
@@ -211,15 +229,6 @@ const Navigation: React.FC = () => {
                                 >
                                     <i className="fas fa-briefcase me-2"></i>
                                     My Portfolio
-                                </Nav.Link>
-                                <Nav.Link
-                                    as={Link}
-                                    to="/advanced-portfolio"
-                                    className={`mb-2 ${isActive('/advanced-portfolio') ? 'active' : ''}`}
-                                    onClick={handleNavClick}
-                                >
-                                    <i className="fas fa-rocket me-2"></i>
-                                    Advanced Portfolio
                                 </Nav.Link>
 
                                 {isAdmin && (

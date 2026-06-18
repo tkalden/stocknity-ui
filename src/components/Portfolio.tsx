@@ -72,16 +72,9 @@ const Portfolio: React.FC = () => {
         setError('');
 
         try {
-            const formData = new FormData();
-            formData.append('btn', 'Build');
-            Object.entries(topStockForm).forEach(([key, value]) => {
-                formData.append(key, value);
-            });
-
-            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, formData, {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
+            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, {
+                btn: 'Build',
+                ...topStockForm,
             });
 
             if (response.data && response.data.data) {
@@ -101,20 +94,11 @@ const Portfolio: React.FC = () => {
         setError('');
 
         try {
-            const formData = new FormData();
-            formData.append('btn', 'Optimize');
-            Object.entries(customForm).forEach(([key, value]) => {
-                if (Array.isArray(value)) {
-                    value.forEach(v => formData.append('stock[]', v));
-                } else {
-                    formData.append(key, value);
-                }
-            });
-
-            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, formData, {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
+            const { selected_stocks, ...rest } = customForm;
+            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, {
+                btn: 'Optimize',
+                'stock[]': selected_stocks,
+                ...rest,
             });
 
             if (response.data && response.data.data) {
@@ -139,13 +123,9 @@ const Portfolio: React.FC = () => {
         setError('');
 
         try {
-            const formData = new FormData();
-            formData.append('btn', 'Save Portfolio');
-
-            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, formData, {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
+            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, {
+                btn: 'Save Portfolio',
+                data: JSON.stringify(currentPortfolio),
             });
 
             if (response.data && response.data.success) {
@@ -197,8 +177,8 @@ const Portfolio: React.FC = () => {
             sum + stock.invested_amount, 0);
 
         return {
-            return: totalReturn * 100,
-            risk: totalRisk * 100,
+            return: totalReturn,
+            risk: totalRisk,
             totalValue
         };
     };
@@ -291,7 +271,6 @@ const Portfolio: React.FC = () => {
                                         <thead>
                                             <tr>
                                                 <th>Ticker</th>
-                                                <th>Company</th>
                                                 <th>Weight</th>
                                                 <th>Invested Amount</th>
                                                 <th>Shares</th>
@@ -304,8 +283,7 @@ const Portfolio: React.FC = () => {
                                             {currentPortfolio.map((stock, index) => (
                                                 <tr key={index}>
                                                     <td><strong>{stock.Ticker}</strong></td>
-                                                    <td>{stock.Company}</td>
-                                                    <td className="text-primary">{formatPercentage(stock.weight)}</td>
+                                                    <td className="text-primary">{formatPercentage(stock.weight * 100)}</td>
                                                     <td className="text-success">${formatNumber(stock.invested_amount)}</td>
                                                     <td>{formatNumber(stock.total_shares)}</td>
                                                     <td className="text-success">{formatPercentage(stock.expected_annual_return)}</td>
@@ -361,7 +339,6 @@ const Portfolio: React.FC = () => {
                                                     <thead>
                                                         <tr>
                                                             <th>Ticker</th>
-                                                            <th>Company</th>
                                                             <th>Weight</th>
                                                             <th>Invested Amount</th>
                                                             <th>Expected Return</th>
@@ -372,8 +349,7 @@ const Portfolio: React.FC = () => {
                                                         {(portfolio.data || []).map((stock, stockIndex) => (
                                                             <tr key={stockIndex}>
                                                                 <td><strong>{stock.Ticker}</strong></td>
-                                                                <td>{stock.Company}</td>
-                                                                <td>{formatPercentage(stock.weight)}</td>
+                                                                <td>{formatPercentage(stock.weight * 100)}</td>
                                                                 <td>${formatNumber(stock.invested_amount)}</td>
                                                                 <td>{formatPercentage(stock.expected_annual_return)}</td>
                                                                 <td>{formatPercentage(stock.expected_annual_risk)}</td>

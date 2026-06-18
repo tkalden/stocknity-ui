@@ -36,7 +36,7 @@ export const API_ENDPOINTS = {
     AI_RECOMMENDATIONS: '/ai/recommendations',
     AI_PERFORMANCE: '/ai/performance',
 
-    // Cache Management
+    // Cache Management (admin-only — require Bearer token)
     CACHE_STATUS: '/cache/status',
     CACHE_INFO: '/cache/info',
     CACHE_TRACKING: '/cache/tracking',
@@ -45,6 +45,8 @@ export const API_ENDPOINTS = {
     CACHE_CLEAR: '/cache/clear',
     CACHE_PRE_WARM: '/cache/pre-warm',
     CACHE_ANNUAL_RETURNS_STATUS: '/cache/annual-returns/status',
+    ADMIN_CACHE_STATUS: '/cache/status',
+    ADMIN_CACHE_REFRESH: '/cache/refresh',
 
     // Scheduler Management
     SCHEDULER_START: '/scheduler/start',

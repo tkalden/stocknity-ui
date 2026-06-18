@@ -1,8 +1,10 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import './App.css';
+import AdvancedMode from './components/AdvancedMode';
 import AdvancedPortfolio from './components/AdvancedPortfolio';
 import AIAnalysis from './components/AIAnalysis';
+import BeginnerMode from './components/BeginnerMode';
 import CacheMonitor from './components/CacheMonitor';
 import Chart from './components/Chart';
 import Home from './components/Home';
@@ -31,6 +33,8 @@ function App() {
               <Route path="/chart" element={<Chart />} />
               <Route path="/ai-analysis" element={<AIAnalysis />} />
               <Route path="/advanced-portfolio" element={<AdvancedPortfolio />} />
+              <Route path="/beginner-mode" element={<BeginnerMode />} />
+              <Route path="/advanced-mode" element={<AdvancedMode />} />
               <Route path="/cache-status" element={<CacheMonitor />} />
             </Routes>
           </main>
