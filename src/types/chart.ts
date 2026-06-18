@@ -3,6 +3,7 @@ export interface ChartData {
     labels: string[];
     title: string;
     values: (number | string)[];
+    prices?: Record<string, number>;
 }
 
 export interface ChartResponse {

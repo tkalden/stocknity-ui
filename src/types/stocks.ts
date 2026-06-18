@@ -22,6 +22,7 @@ export interface ChartData {
     title: string;
     labels: string[];
     values: number[];
+    prices?: Record<string, number>;
 }
 
 export interface ChartResponse {

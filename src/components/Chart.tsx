@@ -5,6 +5,14 @@ import { apiClient } from '../utils/api';
 import { usePriceWebSocket } from '../hooks/usePriceWebSocket';
 import { ChartData, ChartResponse } from '../types';
 
+function isMarketOpen(): boolean {
+    const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const day = et.getDay();
+    if (day === 0 || day === 6) return false;
+    const mins = et.getHours() * 60 + et.getMinutes();
+    return mins >= 570 && mins < 960;
+}
+
 const Chart: React.FC = () => {
     const [activeTab, setActiveTab] = useState('value');
     const [loading, setLoading] = useState(false);
@@ -133,7 +141,7 @@ const Chart: React.FC = () => {
                                                                 {activeTab === 'dividend' && 'Dividend Yield (%)'}
                                                             </th>
                                                             <th>Performance</th>
-                                                            <th>Live Price</th>
+                                                            <th>Price</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -168,15 +176,19 @@ const Chart: React.FC = () => {
                                                                             })()}
                                                                         </div>
                                                                     </td>
-                                                                    <td style={{ minWidth: '100px', fontFamily: 'monospace' }}>
-                                                                        {livePrice != null ? (
-                                                                            <span className="fw-bold">
+                                                                    <td style={{ minWidth: '110px', fontFamily: 'monospace' }}>
+                                                                        {isMarketOpen() && livePrice != null ? (
+                                                                            <span className="fw-bold text-success">
                                                                                 ${livePrice.toFixed(2)}
+                                                                                <span style={{ fontSize: '0.65rem', marginLeft: 4 }} className="text-success">●</span>
+                                                                            </span>
+                                                                        ) : sector.prices?.[ticker] != null ? (
+                                                                            <span className="text-muted">
+                                                                                ${sector.prices![ticker].toFixed(2)}
+                                                                                <span style={{ fontSize: '0.65rem', marginLeft: 4 }}>close</span>
                                                                             </span>
                                                                         ) : (
-                                                                            <span className="text-muted" style={{ fontSize: '0.8rem' }}>
-                                                                                {connected ? 'waiting…' : '—'}
-                                                                            </span>
+                                                                            <span className="text-muted">—</span>
                                                                         )}
                                                                     </td>
                                                                 </tr>
