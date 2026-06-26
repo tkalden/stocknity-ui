@@ -532,6 +532,18 @@ body {
 .sn-ticker-chg.up   { color: var(--gain); }
 .sn-ticker-chg.down { color: var(--loss); }
 
+.sn-ticker-skeleton .sn-ticker-price,
+.sn-ticker-skeleton .sn-ticker-chg {
+  color: var(--text-muted, #666);
+  opacity: 0.5;
+  animation: sn-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes sn-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 0.15; }
+}
+
 /* ─── Home: Hero ───────────────────────────────────────────────────── */
 .sn-hero {
   padding: 7rem 0 6rem;

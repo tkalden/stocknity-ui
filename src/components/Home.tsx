@@ -14,6 +14,8 @@ function isMarketOpen(): boolean {
   return minutes >= 570 && minutes < 960; // 9:30 AM–4:00 PM ET
 }
 
+const SKELETON_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'TSLA', 'META', 'JPM'];
+
 const TickerTape: React.FC = () => {
   const { prices } = usePriceWebSocket();
   const baseRef = useRef<Record<string, number>>({});
@@ -21,7 +23,23 @@ const TickerTape: React.FC = () => {
   if (!isMarketOpen()) return null;
 
   const entries = Object.entries(prices);
-  if (entries.length === 0) return null;
+  const loading = entries.length === 0;
+
+  if (loading) {
+    return (
+      <div className="sn-ticker-wrapper">
+        <div className="sn-ticker-strip">
+          {SKELETON_TICKERS.map((sym) => (
+            <span key={sym} className="sn-ticker-item sn-ticker-skeleton">
+              <span className="sn-ticker-sym">{sym}</span>
+              <span className="sn-ticker-price">——</span>
+              <span className="sn-ticker-chg">· · ·</span>
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const items = entries.map(([sym, price]) => {
     if (!(sym in baseRef.current)) baseRef.current[sym] = price;
