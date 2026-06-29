@@ -12,10 +12,13 @@ npm test -- --watchAll=false   # single test run
 npm run type-check # tsc --noEmit, no emit
 ```
 
-Deploy:
+Deploy (Railway):
 ```bash
-npm run deploy:vercel   # vercel --prod
+npm run build      # CRA build -> build/
+npm run serve      # serve -s build (static SPA, client-routing fallback) on $PORT
 ```
+Railway uses nixpacks: it runs `npm run build`, then `startCommand = npm run serve`
+(see railway.toml). Set `REACT_APP_API_BASE_URL` in the Railway service variables.
 
 ## Environment Variables
 
@@ -69,4 +72,4 @@ All endpoint strings live in `src/config/api.ts` (`API_ENDPOINTS`). Dynamic endp
 
 AI subcomponents (`src/components/ai/`) — `SentimentAnalysis`, `StockRecommendations`, `ModelPerformance` — are composed inside `AIAnalysis`.
 
-**Deployment:** Vercel. `vercel.json` handles SPA routing rewrites. Build output goes to `build/`.
+**Deployment:** Railway (nixpacks). `npm run build` produces `build/`; `serve -s build` serves it as a static SPA with client-routing fallback. See `DEPLOYMENT.md`.
