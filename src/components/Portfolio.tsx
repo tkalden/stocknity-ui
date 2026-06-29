@@ -1,7 +1,7 @@
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, Row, Table } from 'react-bootstrap';
 import { API_ENDPOINTS, indices, riskTolerances, sectors, stockTypes } from '../config/api';
+import { apiClient } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { PortfolioData, PortfolioStock } from '../types';
 import styles from './Portfolio.module.css';
@@ -47,7 +47,7 @@ const Portfolio: React.FC = () => {
 
     const fetchPortfolios = async () => {
         try {
-            const response = await axios.get(API_ENDPOINTS.MY_PORTFOLIO_DATA);
+            const response = await apiClient.get(API_ENDPOINTS.MY_PORTFOLIO_DATA);
             if (response.data && response.data.data) {
                 setPortfolios(response.data.data);
             }
@@ -58,7 +58,7 @@ const Portfolio: React.FC = () => {
 
     const fetchCurrentPortfolio = async () => {
         try {
-            const response = await axios.get(API_ENDPOINTS.PORTFOLIO_DATA);
+            const response = await apiClient.get(API_ENDPOINTS.PORTFOLIO_DATA);
             if (response.data && response.data.data) {
                 setCurrentPortfolio(response.data.data);
             }
@@ -72,7 +72,7 @@ const Portfolio: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, {
+            const response = await apiClient.post(API_ENDPOINTS.PORTFOLIO, {
                 btn: 'Build',
                 ...topStockForm,
             });
@@ -95,7 +95,7 @@ const Portfolio: React.FC = () => {
 
         try {
             const { selected_stocks, ...rest } = customForm;
-            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, {
+            const response = await apiClient.post(API_ENDPOINTS.PORTFOLIO, {
                 btn: 'Optimize',
                 'stock[]': selected_stocks,
                 ...rest,
@@ -123,7 +123,7 @@ const Portfolio: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.post(API_ENDPOINTS.PORTFOLIO, {
+            const response = await apiClient.post(API_ENDPOINTS.PORTFOLIO, {
                 btn: 'Save Portfolio',
                 data: JSON.stringify(currentPortfolio),
             });
@@ -149,7 +149,7 @@ const Portfolio: React.FC = () => {
         }
 
         try {
-            await axios.post(API_ENDPOINTS.DELETE_PORTFOLIO(portfolioId));
+            await apiClient.post(API_ENDPOINTS.DELETE_PORTFOLIO(portfolioId));
             await fetchPortfolios();
             alert('Portfolio deleted successfully!');
         } catch (error) {

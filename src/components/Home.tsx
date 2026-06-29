@@ -1,8 +1,8 @@
-import axios from 'axios';
 import React, { useRef, useState } from 'react';
 import { Col, Container, Row } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import { API_ENDPOINTS } from '../config/api';
+import { apiClient } from '../utils/api';
 import { usePriceWebSocket } from '../hooks/usePriceWebSocket';
 
 function isMarketOpen(): boolean {
@@ -17,7 +17,7 @@ function isMarketOpen(): boolean {
 const SKELETON_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'AMZN', 'GOOGL', 'TSLA', 'META', 'JPM'];
 
 const TickerTape: React.FC = () => {
-  const { prices } = usePriceWebSocket();
+  const { prices, mock } = usePriceWebSocket();
   const baseRef = useRef<Record<string, number>>({});
 
   if (!isMarketOpen()) return null;
@@ -28,6 +28,7 @@ const TickerTape: React.FC = () => {
   if (loading) {
     return (
       <div className="sn-ticker-wrapper">
+        {mock && <span className="sn-demo-badge" title="Simulated prices — not live market data">DEMO PRICES</span>}
         <div className="sn-ticker-strip">
           {SKELETON_TICKERS.map((sym) => (
             <span key={sym} className="sn-ticker-item sn-ticker-skeleton">
@@ -58,6 +59,7 @@ const TickerTape: React.FC = () => {
 
   return (
     <div className="sn-ticker-wrapper">
+      {mock && <span className="sn-demo-badge" title="Simulated prices — not live market data">DEMO PRICES</span>}
       <div className="sn-ticker-strip">
         {doubled.map((t, i) => (
           <span key={i} className="sn-ticker-item">
@@ -79,7 +81,7 @@ const Home: React.FC = () => {
     e.preventDefault();
     setSubscribeLoading(true);
     try {
-      await axios.post(API_ENDPOINTS.SUBSCRIBE, { email: subscribeEmail }, {
+      await apiClient.post(API_ENDPOINTS.SUBSCRIBE, { email: subscribeEmail }, {
         headers: { 'Content-Type': 'application/json' },
       });
       setSubscribeEmail('');

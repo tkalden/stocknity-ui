@@ -1,5 +1,12 @@
 // API Configuration
-export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://stock-portfolio-theta.vercel.app/api';
+//
+// REST calls go through the Spring API gateway (cookie-based auth), NOT the
+// Flask analytics app. Set REACT_APP_API_BASE_URL to the Spring gateway origin
+// (e.g. https://gateway.stocknity.com/api) in each environment:
+//   - local dev: http://localhost:8080/api (Spring gateway on :8080)
+//   - production: set REACT_APP_API_BASE_URL in the Railway service variables
+// The fallback below is the local default only; production MUST set the env var.
+export const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080/api';
 
 export const API_ENDPOINTS = {
     // Authentication

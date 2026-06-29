@@ -1,7 +1,7 @@
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Badge, OverlayTrigger, Spinner, Tooltip } from 'react-bootstrap';
 import { API_ENDPOINTS } from '../config/api';
+import { apiClient } from '../utils/api';
 
 interface CacheStatus {
     status: string;
@@ -18,7 +18,7 @@ const CacheStatusBadge: React.FC = () => {
         setLoading(true);
         setError(false);
         try {
-            const response = await axios.get(API_ENDPOINTS.CACHE_STATUS);
+            const response = await apiClient.get(API_ENDPOINTS.CACHE_STATUS);
             if (response.data.success) {
                 setCacheStatus(response.data.cache_status);
             } else {

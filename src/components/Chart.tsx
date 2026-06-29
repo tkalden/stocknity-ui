@@ -1,7 +1,7 @@
-import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 import { Badge, Card, Col, Container, Nav, Row, Table } from 'react-bootstrap';
-import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../config/api';
+import { apiClient } from '../utils/api';
 import { usePriceWebSocket } from '../hooks/usePriceWebSocket';
 import { ChartData, ChartResponse } from '../types';
 
@@ -21,8 +21,8 @@ const Chart: React.FC = () => {
         setActiveTab(chartType);
 
         try {
-            const response = await axios.get<ChartResponse>(
-                `${API_BASE_URL}${API_ENDPOINTS.CHART(chartType)}`
+            const response = await apiClient.get<ChartResponse>(
+                API_ENDPOINTS.CHART(chartType)
             );
 
             if (Array.isArray(response.data?.data)) {

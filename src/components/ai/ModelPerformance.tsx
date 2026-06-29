@@ -1,7 +1,7 @@
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-bootstrap';
-import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
+import { API_ENDPOINTS } from '../../config/api';
+import { apiClient } from '../../utils/api';
 import { ModelPerformanceData } from '../../types';
 
 interface ModelPerformanceProps {
@@ -17,7 +17,7 @@ const ModelPerformance: React.FC<ModelPerformanceProps> = ({ onPerformanceUpdate
         try {
             setLoading(true);
             setError(null);
-            const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.AI_PERFORMANCE}`);
+            const response = await apiClient.get(API_ENDPOINTS.AI_PERFORMANCE);
             setPerformance(response.data);
             onPerformanceUpdate?.(response.data);
         } catch (err) {

@@ -1,7 +1,7 @@
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Col, Container, Form, Modal, ProgressBar, Row, Table } from 'react-bootstrap';
 import { API_ENDPOINTS } from '../config/api';
+import { apiClient } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 // Using local interface for now since it has different properties
 interface PortfolioStock {
@@ -98,7 +98,7 @@ const AdvancedPortfolio: React.FC = () => {
 
     const fetchOptimizationMethods = async () => {
         try {
-            const response = await axios.get(API_ENDPOINTS.PORTFOLIO_OPTIMIZATION_METHODS);
+            const response = await apiClient.get(API_ENDPOINTS.PORTFOLIO_OPTIMIZATION_METHODS);
             if (response.data.success) {
                 setOptimizationMethods(response.data.methods);
             }
@@ -117,7 +117,7 @@ const AdvancedPortfolio: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.post(API_ENDPOINTS.PORTFOLIO_ADVANCED, {
+            const response = await apiClient.post(API_ENDPOINTS.PORTFOLIO_ADVANCED, {
                 method: selectedMethod,
                 investing_amount: investingAmount,
                 max_stock_price: maxStockPrice,
@@ -160,7 +160,7 @@ const AdvancedPortfolio: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.post(API_ENDPOINTS.PORTFOLIO_COMPARE_METHODS, {
+            const response = await apiClient.post(API_ENDPOINTS.PORTFOLIO_COMPARE_METHODS, {
                 investing_amount: investingAmount,
                 max_stock_price: maxStockPrice,
                 risk_tolerance: riskTolerance,
@@ -202,7 +202,7 @@ const AdvancedPortfolio: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.post(API_ENDPOINTS.PORTFOLIO_BACKTEST, {
+            const response = await apiClient.post(API_ENDPOINTS.PORTFOLIO_BACKTEST, {
                 investing_amount: investingAmount,
                 max_stock_price: maxStockPrice,
                 risk_tolerance: riskTolerance,

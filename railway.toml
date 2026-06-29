@@ -2,6 +2,9 @@
 builder = "nixpacks"
 
 [deploy]
+# nixpacks runs `npm run build` (CRA -> build/); serve it as a static SPA.
+# `serve -s` rewrites unknown routes to index.html (replaces the old vercel.json rewrites).
+startCommand = "npm run serve"
 healthcheckPath = "/"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"
