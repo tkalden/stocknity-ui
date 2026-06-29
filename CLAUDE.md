@@ -26,21 +26,31 @@ REACT_APP_PRICE_WS_URL=ws://localhost:8090/ws/prices
 REACT_APP_MOCK_PRICES=true   # enables mock WebSocket price feed, no backend needed
 ```
 
-Production backend: `https://stock-portfolio-theta.vercel.app/api`
+Production backend: the **Spring API gateway** (cookie auth). Set
+`REACT_APP_API_BASE_URL` to the gateway origin — NOT the Flask app. See
+`DEPLOYMENT.md` for CORS/cookie requirements.
 
 ## Architecture
 
 **Stack:** React 19, TypeScript, React Router v7, React Bootstrap, Axios.
 
-**Auth:** Cookie-based sessions. `AuthContext` (`src/context/AuthContext.tsx`) wraps the whole app, calls `/api/profile` on mount to restore session, and exposes `useAuth()`. Axios `withCredentials: true` is set globally here. All 401 responses auto-clear auth state.
+**Auth:** Cookie-based sessions (httpOnly `sn_token` set by the Spring gateway).
+`AuthContext` (`src/context/AuthContext.tsx`) wraps the whole app, calls
+`/api/profile` on mount to restore session (200 = logged in, 401 = not), and
+exposes `useAuth()`. No token is read/written in JS. `login()` POSTs `/login`
+(server sets cookie) then hydrates the user; `logout()` POSTs `/logout` (server
+clears cookie) and clears local state.
 
-**API layer:** Two parallel patterns exist:
-- `src/utils/api.ts` — typed `apiClient` axios instance + `api.get/post/put/delete` helpers returning `ApiResponse<T>`. Prefer this for new code.
-- `AuthContext` uses raw `axios` directly with `axios.defaults.baseURL`. These are separate instances; don't mix them.
+**API layer:** ONE axios instance — `src/utils/api.ts` (`apiClient` +
+`api.get/post/put/delete` helpers returning `ApiResponse<T>`). It owns the only
+request/response interceptors. `withCredentials: true` sends the session cookie.
+On a 401 the response interceptor invokes a callback that `AuthContext` registers
+via `setOnUnauthorized(...)` (decoupled so api.ts doesn't import React). Never
+import raw `axios` in components — use `apiClient` (axios-shaped) or `api`.
 
 All endpoint strings live in `src/config/api.ts` (`API_ENDPOINTS`). Dynamic endpoints (chart, sentiment) are functions: `API_ENDPOINTS.CHART('candlestick')`.
 
-**Real-time prices:** `src/hooks/usePriceWebSocket.ts` — WebSocket hook connecting to `REACT_APP_PRICE_WS_URL`. When `REACT_APP_MOCK_PRICES=true`, skips WebSocket entirely and runs a local random-walk simulation (±0.15%/tick, 600ms interval). Returns `{ prices, lastUpdated, connected }`.
+**Real-time prices:** `src/hooks/usePriceWebSocket.ts` — WebSocket hook connecting to `REACT_APP_PRICE_WS_URL`. Reconnects use exponential backoff + full jitter (1s base, ×2, 30s cap; reset on open) with a heartbeat that force-reconnects on a stale stream. When `REACT_APP_MOCK_PRICES=true`, skips WebSocket entirely and runs a local random-walk simulation (±0.15%/tick, 600ms interval). Returns `{ prices, lastUpdated, connected, degraded, status, mock }`. A production `npm run build` is BLOCKED when `REACT_APP_MOCK_PRICES=true` (prebuild guard `scripts/check-mock-prices.js`); set `ALLOW_MOCK_PRICES_IN_BUILD=true` for an intentional demo build.
 
 **Types:** All shared types in `src/types/`, organized by domain (`auth`, `portfolio`, `ai`, `cache`, `stocks`, `system`). `src/types/index.ts` re-exports everything — import from `'../types'` not individual files.
 

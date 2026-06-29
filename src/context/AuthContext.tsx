@@ -1,6 +1,6 @@
-import axios from 'axios';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../config/api';
+import { apiClient, setOnUnauthorized } from '../utils/api';
 
 interface User {
     id: string;
@@ -17,8 +17,6 @@ interface AuthContextType {
     isAuthenticated: boolean;
 }
 
-const TOKEN_KEY = 'sn_token';
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const useAuth = () => {
@@ -33,63 +31,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    axios.defaults.baseURL = API_BASE_URL;
-    // No withCredentials — JWT goes in Authorization header, not cookies
-
-    // Attach stored token to every request
-    axios.interceptors.request.use((config) => {
-        const token = localStorage.getItem(TOKEN_KEY);
-        if (token) config.headers['Authorization'] = `Bearer ${token}`;
-        return config;
-    });
-
-    // Clear auth on 401
-    axios.interceptors.response.use(
-        (response) => response,
-        (error) => {
-            if (error.response?.status === 401) {
-                clearAuth();
-            }
-            return Promise.reject(error);
-        }
-    );
-
-    useEffect(() => {
-        checkAuthStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
     const clearAuth = () => {
-        localStorage.removeItem(TOKEN_KEY);
         setUser(null);
         setIsAuthenticated(false);
     };
 
-    const applyToken = (token: string, userData: User) => {
-        localStorage.setItem(TOKEN_KEY, token);
-        setUser(userData);
-        setIsAuthenticated(true);
-    };
+    // Register the shared 401 handler on the single axios instance so any
+    // request anywhere in the app clears auth state when the session expires.
+    useEffect(() => {
+        setOnUnauthorized(clearAuth);
+        checkAuthStatus();
+        return () => setOnUnauthorized(null);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
+    // Session is derived from /profile: 200 = logged in, anything else = not.
+    // The httpOnly cookie (if present) is sent automatically by apiClient.
     const checkAuthStatus = async () => {
-        const token = localStorage.getItem(TOKEN_KEY);
-        if (!token) return;
         try {
-            const response = await axios.get(API_ENDPOINTS.PROFILE);
-            if (response.status === 200) {
+            const response = await apiClient.get(API_ENDPOINTS.PROFILE);
+            if (response.status === 200 && response.data?.user) {
                 setUser(response.data.user);
                 setIsAuthenticated(true);
+            } else {
+                clearAuth();
             }
         } catch {
+            // 401/network -> not authenticated (interceptor also calls clearAuth on 401)
             clearAuth();
         }
     };
 
     const login = async (email: string, password: string): Promise<boolean> => {
         try {
-            const response = await axios.post(API_ENDPOINTS.LOGIN, { email, password });
-            if (response.data.success && response.data.token) {
-                applyToken(response.data.token, response.data.user);
+            // Server validates credentials and sets the httpOnly session cookie.
+            const response = await apiClient.post(API_ENDPOINTS.LOGIN, { email, password });
+            if (response.data?.success) {
+                // Cookie is now set; hydrate user from the login payload if the
+                // server returns it, otherwise confirm via /profile.
+                if (response.data.user) {
+                    setUser(response.data.user);
+                    setIsAuthenticated(true);
+                } else {
+                    await checkAuthStatus();
+                }
                 return true;
             }
             return false;
@@ -101,17 +86,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const signup = async (email: string, name: string, password: string, confirm: string): Promise<boolean> => {
         try {
-            const response = await axios.post(API_ENDPOINTS.SIGNUP, { email, name, password, confirm });
-            return response.data.success === true;
+            const response = await apiClient.post(API_ENDPOINTS.SIGNUP, { email, name, password, confirm });
+            return response.data?.success === true;
         } catch (error) {
             console.error('Signup error:', error);
             return false;
         }
     };
 
-    const logout = () => {
-        // JWT is stateless — just drop the token locally
-        clearAuth();
+    const logout = async (): Promise<void> => {
+        try {
+            // Server clears the httpOnly cookie.
+            await apiClient.post(API_ENDPOINTS.LOGOUT);
+        } catch (error) {
+            console.error('Logout error:', error);
+        } finally {
+            clearAuth();
+        }
     };
 
     return (

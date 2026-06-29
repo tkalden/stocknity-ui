@@ -47,8 +47,21 @@ vercel
 In your Vercel project settings, add these environment variables:
 
 ```
-REACT_APP_API_BASE_URL=https://stock-portfolio-theta.vercel.app/api
+REACT_APP_API_BASE_URL=https://<spring-api-gateway-origin>/api
 ```
+
+> **IMPORTANT:** `REACT_APP_API_BASE_URL` must point at the **Spring API gateway
+> origin**, not the Flask analytics app. Auth is cookie-based (httpOnly
+> `sn_token` set by the gateway), so the gateway must:
+> - serve the REST API + auth endpoints (`/login`, `/logout`, `/profile`, etc.),
+> - set CORS `Access-Control-Allow-Credentials: true` and an explicit
+>   `Access-Control-Allow-Origin` matching the UI origin (wildcard `*` is not
+>   allowed with credentials),
+> - set the cookie with `SameSite=None; Secure` for cross-site prod usage.
+>
+> `vercel.json` ships a `REPLACE-WITH-SPRING-GATEWAY-ORIGIN` placeholder; the
+> real origin is configured per-environment via Vercel env vars (this overrides
+> the placeholder).
 
 ### Step 4: Custom Domain (Optional)
 1. Go to your Vercel project settings

@@ -1,7 +1,7 @@
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge } from 'react-bootstrap';
-import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
+import { API_ENDPOINTS } from '../../config/api';
+import { apiClient } from '../../utils/api';
 import { StockRecommendation } from '../../types';
 
 interface StockRecommendationsProps {
@@ -20,7 +20,7 @@ const StockRecommendations: React.FC<StockRecommendationsProps> = ({ onRecommend
         try {
             setLoading(true);
             setError(null);
-            const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.AI_RECOMMENDATIONS}`, {
+            const response = await apiClient.get(API_ENDPOINTS.AI_RECOMMENDATIONS, {
                 params: { time_horizon: timeHorizon, risk_tolerance: riskTolerance, limit: 10 },
             });
             setRecommendations(response.data.recommendations);

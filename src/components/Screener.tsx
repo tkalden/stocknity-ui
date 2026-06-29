@@ -1,7 +1,7 @@
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Col, Container, Form, Row, Table } from 'react-bootstrap';
-import { API_BASE_URL, API_ENDPOINTS, sectors } from '../config/api';
+import { API_ENDPOINTS, sectors } from '../config/api';
+import { apiClient } from '../utils/api';
 import { StockData } from '../types';
 
 type SortKey = keyof StockData;
@@ -27,7 +27,7 @@ const Screener: React.FC = () => {
             const params: Record<string, string> = {};
             if (sector !== 'Any') params.sector = sector;
 
-            const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.SCREENER_DATA}`, { params });
+            const response = await apiClient.get(API_ENDPOINTS.SCREENER_DATA, { params });
             if (response.data?.data) {
                 setStockData(response.data.data);
             }

@@ -1,7 +1,7 @@
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
-import { API_BASE_URL, API_ENDPOINTS } from '../config/api';
+import { API_ENDPOINTS } from '../config/api';
+import { apiClient } from '../utils/api';
 
 interface CacheStatus {
     status: string;
@@ -34,7 +34,7 @@ const AnnualReturnsCacheMonitor: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.get<CacheResponse>(`${API_BASE_URL}${API_ENDPOINTS.CACHE_ANNUAL_RETURNS_STATUS}`);
+            const response = await apiClient.get<CacheResponse>(API_ENDPOINTS.CACHE_ANNUAL_RETURNS_STATUS);
             if (response.data.success) {
                 setCacheStatus(response.data.cache_status);
                 setIsFresh(response.data.is_fresh);
@@ -56,7 +56,7 @@ const AnnualReturnsCacheMonitor: React.FC = () => {
         setError('');
 
         try {
-            const response = await axios.post(`${API_BASE_URL}${API_ENDPOINTS.CACHE_PRE_WARM}`);
+            const response = await apiClient.post(API_ENDPOINTS.CACHE_PRE_WARM);
             if (response.data.success) {
                 // Refresh the status after successful pre-warm
                 await fetchCacheStatus();

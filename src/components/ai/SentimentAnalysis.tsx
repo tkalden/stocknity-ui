@@ -1,7 +1,7 @@
-import axios from 'axios';
 import React, { useState } from 'react';
 import { Alert, Col, Row, Table } from 'react-bootstrap';
-import { API_BASE_URL, API_ENDPOINTS } from '../../config/api';
+import { API_ENDPOINTS } from '../../config/api';
+import { apiClient } from '../../utils/api';
 import { SentimentAnalysisData } from '../../types';
 
 interface SentimentAnalysisProps {
@@ -20,7 +20,7 @@ const SentimentAnalysis: React.FC<SentimentAnalysisProps> = ({ onSentimentUpdate
         try {
             setLoading(true);
             setError(null);
-            const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.AI_SENTIMENT(sym)}`);
+            const response = await apiClient.get(API_ENDPOINTS.AI_SENTIMENT(sym));
             setSentimentData(response.data);
             onSentimentUpdate?.(response.data);
         } catch (err) {
