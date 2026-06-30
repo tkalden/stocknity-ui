@@ -1,5 +1,6 @@
 [build]
 builder = "nixpacks"
+buildCommand = "npm run build"
 
 [deploy]
 # nixpacks runs `npm run build` (CRA -> build/); serve it as a static SPA.
