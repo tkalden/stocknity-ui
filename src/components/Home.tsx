@@ -42,7 +42,7 @@ const TickerTape: React.FC = () => {
     );
   }
 
-  const items = entries.map(([sym, price]) => {
+  const items = entries.slice(0, 30).map(([sym, price]) => {
     if (!(sym in baseRef.current)) baseRef.current[sym] = price;
     const base = baseRef.current[sym];
     const chgPct = base > 0 ? ((price - base) / base) * 100 : 0;
