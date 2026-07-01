@@ -505,7 +505,7 @@ body {
 .sn-ticker-strip {
   display: flex;
   align-items: center;
-  animation: sn-ticker 180s linear infinite;
+  animation: sn-ticker 40s linear infinite;
   width: max-content;
 }
 
